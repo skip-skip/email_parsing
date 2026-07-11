@@ -1,0 +1,22 @@
+# Epic 3 — Outlook Integration Layer
+
+## Goal
+Build the abstraction layer for Outlook COM automation, providing EmailProvider and CalendarProvider interfaces that the rest of the application consumes.
+
+## Status
+Not Started
+
+## Tasks
+| Task | Title | Status | Dependencies |
+|------|-------|--------|-------------|
+| 3.1 | Define Provider Interfaces | Not Started | 1.3 |
+| 3.2 | Implement Outlook COM Email Provider | Not Started | 3.1 |
+| 3.3 | Implement Outlook COM Calendar Provider | Not Started | 3.1 |
+| 3.4 | Implement APScheduler Outlook Monitor | Not Started | 3.2, 1.5, 1.6 |
+| 3.5 | Outlook Integration Tests | Not Started | 3.2–3.4 |
+
+## Acceptance Criteria
+- Provider interfaces define clear contracts
+- COM providers connect to Outlook and perform all operations
+- Monitor polls for new emails at configurable interval
+- All tests pass with mocked COM objects
