@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.venv/
+
+# Ruff
+.ruff_cache/
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
