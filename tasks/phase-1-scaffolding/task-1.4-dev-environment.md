@@ -4,7 +4,7 @@
 Set up development tooling, linting, and environment configuration.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `.env.example` with required environment variables:
@@ -30,3 +30,8 @@ Not Started
 - Linters pass on all existing files
 - Environment variables load correctly
 - `make dev` starts both servers
+
+## Notes
+- **Frontend linting**: Task specified ESLint + Prettier, but project already uses oxlint (set up in task 1.2). Configured oxlint `.oxlintrc.json` instead to avoid tooling conflicts.
+- **`make` not on PATH**: Makefile created but `make` is not installed on this Windows machine. Install via `choco install make` or use commands manually.
+- **`shared/types` stdlib shadow**: Added `shared/__init__.py` to fix mypy namespace resolution. `shared/types/` excluded from mypy checks due to stdlib `types` module shadowing (contains only TypeScript `.ts` definitions).

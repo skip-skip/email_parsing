@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 *.egg-info/
 dist/
 build/
@@ -9,9 +10,33 @@ build/
 # Ruff
 .ruff_cache/
 
+# Mypy
+.mypy_cache/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Database
+data.db
+data.db-journal
+*.db
+*.db-journal
+
+# Environment
+.env
+
 # Node
 node_modules/
+
+# Frontend build
+frontend/dist/
 
 # IDE
 .vscode/
 .idea/
+
+# OS
+Thumbs.db
+.DS_Store

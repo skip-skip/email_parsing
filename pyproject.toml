@@ -23,10 +23,31 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "shared"]
+known-third-party = ["fastapi", "pydantic", "uvicorn"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pywin32.*",
+    "win32com.*",
+    "pythoncom.*",
+    "langgraph.*",
+    "langchain.*",
+    "apscheduler.*",
+    "loguru.*",
+]
+ignore_missing_imports = true
 
 [tool.uvicorn]
 host = "127.0.0.1"
