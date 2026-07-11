@@ -13,7 +13,7 @@ In Progress
 | 1.2 | Initialize Frontend Project | Complete | None |
 | 1.3 | Create Shared Schemas | Complete | 1.1, 1.2 |
 | 1.4 | Configure Development Environment | Complete | 1.1, 1.2 |
-| 1.5 | Set Up Database Infrastructure | Not Started | 1.1 |
+| 1.5 | Set Up Database Infrastructure | Complete | 1.1 |
 | 1.6 | Set Up Logging | Not Started | 1.1 |
 
 ## Acceptance Criteria

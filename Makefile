@@ -32,7 +32,7 @@ test-python:
 # Database
 
 db-migrate:
-	@echo "No migrations configured yet. Set up Alembic in a future task."
+	python -m alembic upgrade head
 
 # Setup
 

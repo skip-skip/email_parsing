@@ -4,7 +4,7 @@
 Configure SQLAlchemy, database connection, and migration tooling.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Install SQLAlchemy, Alembic, aiosqlite (dev), asyncpg (prod)
