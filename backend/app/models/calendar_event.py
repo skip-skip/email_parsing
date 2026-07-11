@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, String, func
+from sqlalchemy import Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.services.database.base import Base
@@ -19,7 +19,9 @@ class CalendarEvent(Base):
     calendar_event_id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, default=uuid.uuid4
     )
-    ticket_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    ticket_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tickets.ticket_id"), index=True
+    )
     outlook_event_id: Mapped[str | None] = mapped_column(String, nullable=True)
     start_time: Mapped[datetime] = mapped_column()
     end_time: Mapped[datetime] = mapped_column()

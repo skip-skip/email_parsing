@@ -4,7 +4,7 @@
 Generate and verify the initial migration containing all models.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Import all models in a central `models/__init__.py`

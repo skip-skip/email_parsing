@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, String, Text, func
+from sqlalchemy import ForeignKey, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.services.database.base import Base
@@ -28,7 +28,7 @@ class Email(Base):
     attachments: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     ticket_id: Mapped[uuid.UUID | None] = mapped_column(
-        nullable=True, index=True
+        ForeignKey("tickets.ticket_id"), nullable=True, index=True
     )
 
     ticket: Mapped[Ticket | None] = relationship(

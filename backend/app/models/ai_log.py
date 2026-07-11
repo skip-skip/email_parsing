@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, Integer, JSON, String, Text, func
+from sqlalchemy import Float, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.services.database.base import Base
@@ -19,7 +19,9 @@ class AILog(Base):
     log_id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, default=uuid.uuid4
     )
-    ticket_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    ticket_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tickets.ticket_id"), nullable=True, index=True
+    )
     model: Mapped[str] = mapped_column(String)
     prompt_version: Mapped[str] = mapped_column(String)
     prompt: Mapped[str] = mapped_column(Text)
