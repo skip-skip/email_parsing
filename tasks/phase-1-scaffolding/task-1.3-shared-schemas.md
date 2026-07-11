@@ -4,7 +4,7 @@
 Define Pydantic models and TypeScript types that both backend and frontend will use.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `shared/schemas/` directory
