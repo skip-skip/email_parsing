@@ -24,6 +24,9 @@ data.db-journal
 *.db
 *.db-journal
 
+# Logs
+logs/
+
 # Environment
 .env
 

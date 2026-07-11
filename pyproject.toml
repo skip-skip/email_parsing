@@ -12,6 +12,7 @@ dependencies = [
     "aiosqlite>=0.20.0",
     "asyncpg>=0.29.0",
     "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
 ]
 
 [project.optional-dependencies]
@@ -37,7 +38,7 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["backend", "shared"]
-known-third-party = ["fastapi", "pydantic", "uvicorn"]
+known-third-party = ["fastapi", "loguru", "pydantic", "starlette", "uvicorn"]
 
 [tool.mypy]
 python_version = "3.12"
