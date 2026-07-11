@@ -10,7 +10,7 @@ Not Started
 | Task | Title | Status | Dependencies |
 |------|-------|--------|-------------|
 | 2.1 | Ticket Model | Complete | 1.5 |
-| 2.2 | Email Model | Not Started | 1.5 |
+| 2.2 | Email Model | Complete | 1.5 |
 | 2.3 | CalendarEvent Model | Not Started | 1.5, 2.1 |
 | 2.4 | AILog Model | Not Started | 1.5 |
 | 2.5 | Create Alembic Migration | Not Started | 2.1–2.4 |

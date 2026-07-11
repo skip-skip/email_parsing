@@ -4,7 +4,7 @@
 Create the Email SQLAlchemy model.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/models/email.py`
