@@ -4,7 +4,7 @@
 Create repository classes for database operations.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/database/repositories/`
