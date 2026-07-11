@@ -4,7 +4,7 @@
 Create the CalendarEvent SQLAlchemy model.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/models/calendar_event.py`
