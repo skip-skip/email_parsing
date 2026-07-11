@@ -4,7 +4,7 @@
 Create the Ticket SQLAlchemy model matching the architecture schema.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/models/ticket.py`

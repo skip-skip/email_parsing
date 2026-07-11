@@ -17,6 +17,8 @@ config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 
 from backend.app.services.database.base import Base
 
+import backend.app.models  # noqa: F401 — register models with Base.metadata
+
 target_metadata = Base.metadata
 
 
