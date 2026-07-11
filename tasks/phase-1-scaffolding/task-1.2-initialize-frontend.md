@@ -4,7 +4,7 @@
 Scaffold the React + TypeScript frontend with Vite.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Run `npm create vite@latest frontend -- --template react-ts`
