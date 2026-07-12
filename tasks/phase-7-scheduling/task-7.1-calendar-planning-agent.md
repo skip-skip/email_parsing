@@ -4,7 +4,7 @@
 Create the agent that suggests work blocks based on calendar availability and deadlines.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/agents/calendar_planning_agent.py`:
