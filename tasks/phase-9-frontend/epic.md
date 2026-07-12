@@ -4,12 +4,12 @@
 Build the React dashboard with three main views: Missing Information Queue, Scheduling Queue, and Active Tasks.
 
 ## Status
-Not Started
+In Progress
 
 ## Tasks
 | Task | Title | Status | Dependencies |
 |------|-------|--------|-------------|
-| 9.1 | Set Up Frontend Foundation | Not Started | 1.2 |
+| 9.1 | Set Up Frontend Foundation | Complete | 1.2 |
 | 9.2 | Build Missing Information Queue View | Not Started | 6.2, 6.3, 9.1 |
 | 9.3 | Build Scheduling Queue View | Not Started | 7.2, 7.3, 9.1 |
 | 9.4 | Build Active Tasks View | Not Started | 5.1, 9.1 |

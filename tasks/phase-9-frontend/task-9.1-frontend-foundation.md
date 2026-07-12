@@ -4,7 +4,7 @@
 Complete the frontend setup with routing, API client, and base layout.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `frontend/src/App.tsx` with React Router:

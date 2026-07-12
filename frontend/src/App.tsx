@@ -4,6 +4,7 @@ import { DashboardPage } from "@/pages/DashboardPage"
 import { MissingInfoPage } from "@/pages/MissingInfoPage"
 import { SchedulingPage } from "@/pages/SchedulingPage"
 import { ActiveTasksPage } from "@/pages/ActiveTasksPage"
+import { AiLogsPage } from "@/pages/AiLogsPage"
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="missing-info" element={<MissingInfoPage />} />
           <Route path="scheduling" element={<SchedulingPage />} />
           <Route path="active-tasks" element={<ActiveTasksPage />} />
+          <Route path="ai-logs" element={<AiLogsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
