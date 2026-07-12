@@ -4,7 +4,7 @@
 Create the state machine that governs all ticket transitions.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/workflows/` directory
