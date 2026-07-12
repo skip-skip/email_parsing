@@ -4,7 +4,7 @@
 Create the service that manages the missing information review queue.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/queues/` directory
