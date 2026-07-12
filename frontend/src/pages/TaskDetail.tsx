@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import {
   ArrowLeft,
@@ -153,25 +154,32 @@ export function TaskDetail() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="space-y-4">
-          <Card className="animate-pulse">
-            <CardHeader>
-              <div className="h-5 w-48 rounded bg-muted" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="h-4 w-32 rounded bg-muted" />
-              <div className="h-4 w-64 rounded bg-muted" />
-              <div className="h-4 w-48 rounded bg-muted" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-7" />
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-4 w-48" />
             </CardContent>
           </Card>
-          <Card className="animate-pulse">
-            <CardContent className="space-y-4 py-4">
-              <div className="h-4 w-48 rounded bg-muted" />
-              <div className="h-20 w-full rounded bg-muted" />
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-4 w-48" />
             </CardContent>
           </Card>
         </div>
+        <Card>
+          <CardContent className="pt-6">
+            <Skeleton className="h-4 w-48 mb-3" />
+            <Skeleton className="h-20 w-full" />
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -188,14 +196,10 @@ export function TaskDetail() {
           Back to Active Tasks
         </Button>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="size-5" />
-              Failed to load task
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="flex flex-col items-center gap-3 py-8">
+            <AlertCircle className="size-8 text-destructive" />
+            <p className="text-sm font-medium">Failed to load task</p>
+            <p className="text-center text-sm text-muted-foreground">
               {error instanceof Error
                 ? error.message
                 : "Task not found."}
@@ -217,7 +221,7 @@ export function TaskDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button
           variant="ghost"
           size="icon-sm"
@@ -225,8 +229,8 @@ export function TaskDetail() {
         >
           <ArrowLeft className="size-4" />
         </Button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Ticket {ticketIdShort}...
           </h1>
           <div
@@ -356,7 +360,7 @@ export function TaskDetail() {
         </Card>
       )}
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span>Created: {new Date(ticket.created_at).toLocaleString()}</span>
         {ticket.updated_at && (
           <span>Updated: {new Date(ticket.updated_at).toLocaleString()}</span>

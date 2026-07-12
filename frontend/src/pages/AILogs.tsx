@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/services/api"
 import type { AILog, PaginatedResponse, AILogStats } from "@/services/api"
@@ -6,11 +6,12 @@ import { LogDetail } from "@/components/LogDetail"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/EmptyState"
 import { cn } from "@/lib/utils"
+import { useUIStore } from "@/stores/ui-store"
 import {
   AlertCircle,
   RefreshCw,
@@ -43,6 +44,7 @@ export function AILogs() {
   const [promptVersionFilter, setPromptVersionFilter] = useState("")
   const [successFilter, setSuccessFilter] = useState("")
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
+  const setLastUpdated = useUIStore((s) => s.setLastUpdated)
 
   const successValue =
     successFilter === "" ? undefined : successFilter === "true"
@@ -52,6 +54,7 @@ export function AILogs() {
     isLoading,
     error,
     refetch,
+    dataUpdatedAt,
   } = useQuery({
     queryKey: [
       "ai-logs",
@@ -70,7 +73,14 @@ export function AILogs() {
       })
       return response.data
     },
+    refetchInterval: 60_000,
   })
+
+  useEffect(() => {
+    if (dataUpdatedAt) {
+      setLastUpdated("/ai-logs")
+    }
+  }, [dataUpdatedAt, setLastUpdated])
 
   const { data: stats } = useQuery({
     queryKey: ["ai-logs-stats"],
@@ -95,15 +105,28 @@ export function AILogs() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">AI Logs</h1>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center gap-3 py-3">
+                <Skeleton className="size-8 rounded-lg" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-5 w-12" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i}>
               <CardContent className="flex items-center gap-4 py-4">
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-48 rounded bg-muted" />
-                  <div className="h-3 w-64 rounded bg-muted" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-64" />
                 </div>
-                <div className="h-4 w-20 rounded bg-muted" />
+                <Skeleton className="h-4 w-20" />
               </CardContent>
             </Card>
           ))}
@@ -117,14 +140,10 @@ export function AILogs() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">AI Logs</h1>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="size-5" />
-              Failed to load AI logs
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="flex flex-col items-center gap-3 py-8">
+            <AlertCircle className="size-8 text-destructive" />
+            <p className="text-sm font-medium">Failed to load AI logs</p>
+            <p className="text-center text-sm text-muted-foreground">
               {error instanceof Error
                 ? error.message
                 : "An unexpected error occurred."}
@@ -141,13 +160,23 @@ export function AILogs() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">AI Logs</h1>
-        {logsData && logsData.total > 0 && (
-          <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-            {logsData.total} {logsData.total === 1 ? "log" : "logs"}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {logsData && logsData.total > 0 && (
+            <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+              {logsData.total} {logsData.total === 1 ? "log" : "logs"}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refetch()}
+          >
+            <RefreshCw className="size-3.5" />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
 
       {stats && <StatsBar stats={stats} />}
@@ -198,7 +227,7 @@ export function AILogs() {
           className="h-7 rounded-full border bg-background px-3 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -238,21 +267,15 @@ export function AILogs() {
       </div>
 
       {logsData && logsData.items.length === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ScrollText className="size-4" />
-              No logs found
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              {logsData.total === 0
-                ? "AI interaction logs will appear here as the system processes emails."
-                : "No logs match the current filters. Try adjusting your search criteria."}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ScrollText}
+          title="No logs found"
+          description={
+            logsData.total === 0
+              ? "AI interaction logs will appear here as the system processes emails."
+              : "No logs match the current filters. Try adjusting your search criteria."
+          }
+        />
       )}
 
       {logsData && logsData.items.length > 0 && (
@@ -269,7 +292,7 @@ export function AILogs() {
       )}
 
       {logsData && logsData.total > PAGE_SIZE && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             Showing {logsData.offset + 1}–
             {Math.min(logsData.offset + PAGE_SIZE, logsData.total)} of{" "}
@@ -396,7 +419,7 @@ function LogRow({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="truncate text-sm font-medium">{log.model}</span>
             <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
               {log.prompt_version}

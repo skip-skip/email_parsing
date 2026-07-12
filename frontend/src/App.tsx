@@ -6,20 +6,65 @@ import { SchedulingPage } from "@/pages/SchedulingPage"
 import { ActiveTasksPage } from "@/pages/ActiveTasksPage"
 import { TaskDetail } from "@/pages/TaskDetail"
 import { AiLogsPage } from "@/pages/AiLogsPage"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="missing-info" element={<MissingInfoPage />} />
-          <Route path="scheduling" element={<SchedulingPage />} />
-          <Route path="active-tasks" element={<ActiveTasksPage />} />
-          <Route path="active-tasks/:ticketId" element={<TaskDetail />} />
-          <Route path="ai-logs" element={<AiLogsPage />} />
-        </Route>
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route
+              index
+              element={
+                <ErrorBoundary fallbackTitle="Dashboard Error">
+                  <DashboardPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="missing-info"
+              element={
+                <ErrorBoundary fallbackTitle="Missing Info Error">
+                  <MissingInfoPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="scheduling"
+              element={
+                <ErrorBoundary fallbackTitle="Scheduling Error">
+                  <SchedulingPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="active-tasks"
+              element={
+                <ErrorBoundary fallbackTitle="Active Tasks Error">
+                  <ActiveTasksPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="active-tasks/:ticketId"
+              element={
+                <ErrorBoundary fallbackTitle="Task Detail Error">
+                  <TaskDetail />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="ai-logs"
+              element={
+                <ErrorBoundary fallbackTitle="AI Logs Error">
+                  <AiLogsPage />
+                </ErrorBoundary>
+              }
+            />
+          </Route>
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

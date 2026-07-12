@@ -1,12 +1,22 @@
+import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/services/api"
 import { TaskRow } from "@/components/TaskRow"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/EmptyState"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/stores/ui-store"
-import { AlertCircle, RefreshCw, Search, X, ArrowUpDown } from "lucide-react"
+import {
+  AlertCircle,
+  RefreshCw,
+  Search,
+  X,
+  ArrowUpDown,
+  ListChecks,
+} from "lucide-react"
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Active" },
@@ -31,6 +41,7 @@ export function ActiveTasks() {
   const sortField = useUIStore((s) => s.activeSortField)
   const sortDirection = useUIStore((s) => s.activeSortDirection)
   const setSortField = useUIStore((s) => s.setSortField)
+  const setLastUpdated = useUIStore((s) => s.setLastUpdated)
 
   const effectiveSortField = sortField || "deadline"
 
@@ -39,6 +50,7 @@ export function ActiveTasks() {
     isLoading,
     error,
     refetch,
+    dataUpdatedAt,
   } = useQuery({
     queryKey: ["active-tasks", statusFilter, clientFilter, effectiveSortField, sortDirection],
     queryFn: async () => {
@@ -50,7 +62,14 @@ export function ActiveTasks() {
       })
       return response.data
     },
+    refetchInterval: 30_000,
   })
+
+  useEffect(() => {
+    if (dataUpdatedAt) {
+      setLastUpdated("/active-tasks")
+    }
+  }, [dataUpdatedAt, setLastUpdated])
 
   function handleTaskClick(ticketId: string) {
     navigate(`/active-tasks/${ticketId}`)
@@ -62,13 +81,13 @@ export function ActiveTasks() {
         <h1 className="text-3xl font-bold tracking-tight">Active Tasks</h1>
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i}>
               <CardContent className="flex items-center gap-4 py-4">
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-48 rounded bg-muted" />
-                  <div className="h-3 w-64 rounded bg-muted" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-64" />
                 </div>
-                <div className="h-4 w-20 rounded bg-muted" />
+                <Skeleton className="h-4 w-20" />
               </CardContent>
             </Card>
           ))}
@@ -82,14 +101,10 @@ export function ActiveTasks() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Active Tasks</h1>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="size-5" />
-              Failed to load active tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="flex flex-col items-center gap-3 py-8">
+            <AlertCircle className="size-8 text-destructive" />
+            <p className="text-sm font-medium">Failed to load active tasks</p>
+            <p className="text-center text-sm text-muted-foreground">
               {error instanceof Error
                 ? error.message
                 : "An unexpected error occurred."}
@@ -106,17 +121,27 @@ export function ActiveTasks() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Active Tasks</h1>
-        {tickets && tickets.length > 0 && (
-          <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-            {tickets.length} {tickets.length === 1 ? "task" : "tasks"}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {tickets && tickets.length > 0 && (
+            <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+              {tickets.length} {tickets.length === 1 ? "task" : "tasks"}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refetch()}
+          >
+            <RefreshCw className="size-3.5" />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -154,7 +179,7 @@ export function ActiveTasks() {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <ArrowUpDown className="size-3.5 text-muted-foreground" />
           {SORT_OPTIONS.map((opt) => (
             <button
@@ -178,16 +203,11 @@ export function ActiveTasks() {
       </div>
 
       {tickets && tickets.length === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>No active tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Accepted tasks with calendar events will appear here.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ListChecks}
+          title="No active tasks"
+          description="Accepted tasks with calendar events will appear here. Once you approve schedules, tasks will show up for tracking."
+        />
       )}
 
       {tickets && tickets.length > 0 && (
