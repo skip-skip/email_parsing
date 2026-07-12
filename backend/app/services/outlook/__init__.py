@@ -6,6 +6,7 @@ from backend.app.services.outlook.models import (
     FreeBusyInfo,
     OutlookCalendarEvent,
 )
+from backend.app.services.outlook.monitor import OutlookMonitor
 
 __all__ = [
     "CalendarProvider",
@@ -15,4 +16,5 @@ __all__ = [
     "OutlookCalendarEvent",
     "OutlookComCalendarProvider",
     "OutlookComEmailProvider",
+    "OutlookMonitor",
 ]
