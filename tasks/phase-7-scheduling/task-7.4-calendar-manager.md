@@ -4,7 +4,7 @@
 Create the service that actually creates Outlook calendar events after approval.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/scheduler/calendar_manager.py`:
