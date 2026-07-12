@@ -4,7 +4,7 @@
 Write tests for the complete scheduling flow.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Test calendar planning agent:
