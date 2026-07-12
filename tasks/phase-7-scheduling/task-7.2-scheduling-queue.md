@@ -4,7 +4,7 @@
 Create the service that manages the scheduling review queue.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/queues/scheduling_queue.py`:
