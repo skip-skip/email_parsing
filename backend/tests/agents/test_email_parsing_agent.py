@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -56,25 +57,14 @@ class TestEmailParsingAgent:
             return_value=MagicMock(),
         ):
             agent = EmailParsingAgent(ollama_client=mock_client)
-            result = agent.parse(
-                sender=self.SENDER,
-                subject=self.SUBJECT,
-                body=self.BODY,
-                received_time=self.RECEIVED_TIME,
+            result = asyncio.run(
+                agent.parse(
+                    sender=self.SENDER,
+                    subject=self.SUBJECT,
+                    body=self.BODY,
+                    received_time=self.RECEIVED_TIME,
+                )
             )
-
-        # We need to handle the fact that parse() is async.
-        # Run it properly:
-        import asyncio
-
-        result = asyncio.run(
-            agent.parse(
-                sender=self.SENDER,
-                subject=self.SUBJECT,
-                body=self.BODY,
-                received_time=self.RECEIVED_TIME,
-            )
-        )
 
         assert isinstance(result, ParsedEmail)
         assert result.client == "Acme Corp"
@@ -105,8 +95,6 @@ class TestEmailParsingAgent:
             return_value=MagicMock(),
         ):
             agent = EmailParsingAgent(ollama_client=mock_client)
-            import asyncio
-
             result = asyncio.run(
                 agent.parse(
                     sender=self.SENDER,
@@ -199,8 +187,6 @@ class TestEmailParsingAgent:
             return_value=mock_log_repo,
         ):
             agent = EmailParsingAgent(ollama_client=mock_client)
-            import asyncio
-
             result = asyncio.run(
                 agent.parse(
                     sender=self.SENDER,
@@ -239,8 +225,6 @@ class TestEmailParsingAgent:
             return_value=mock_log_repo,
         ):
             agent = EmailParsingAgent(ollama_client=mock_client)
-            import asyncio
-
             result = asyncio.run(
                 agent.parse(
                     sender=self.SENDER,
