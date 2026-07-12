@@ -4,7 +4,7 @@
 Create a service that wraps Ollama API calls for the rest of the application.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/llm/` directory
