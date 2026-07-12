@@ -4,7 +4,7 @@
 Handle incoming replies to missing information requests.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/conversation_handler.py`:
