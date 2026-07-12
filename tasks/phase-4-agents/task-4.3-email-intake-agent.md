@@ -4,7 +4,7 @@
 Create the agent that receives raw emails from the monitor and stores them.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/agents/` directory
