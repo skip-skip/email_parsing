@@ -4,7 +4,7 @@
 Create the agent that uses the LLM to extract structured task information from emails.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `email_parsing_agent.py`:
