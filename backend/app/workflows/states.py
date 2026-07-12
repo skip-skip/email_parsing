@@ -1,4 +1,14 @@
 from enum import Enum
+from typing import Any, TypedDict
+
+
+class WorkflowState(TypedDict):
+    ticket_id: str
+    status: str
+    parsed_data: dict[str, Any] | None
+    validation_result: dict[str, Any] | None
+    missing_fields: list[str]
+    error: str | None
 
 
 class TicketStatus(str, Enum):

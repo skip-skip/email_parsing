@@ -4,7 +4,7 @@
 Implement the logic for each workflow node.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/workflows/nodes/` directory
@@ -51,3 +51,7 @@ Not Started
 - Nodes communicate only through `WorkflowState`
 - No node directly modifies system state (only state manager does)
 - All nodes are independently testable
+
+## Notes
+- `WorkflowState` was moved from `graph.py` to `states.py` to break a circular import (nodes import `WorkflowState`, graph imports node functions). No architectural impact.
+- Removed `schedule_approval` node from the graph — user approval is handled externally via the review dashboard, not as an inline workflow node.
