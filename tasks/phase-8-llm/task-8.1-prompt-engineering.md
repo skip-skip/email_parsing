@@ -4,7 +4,7 @@
 Systematically test and refine all prompt templates.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/tests/prompts/` directory
