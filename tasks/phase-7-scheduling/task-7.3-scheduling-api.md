@@ -4,7 +4,7 @@
 Create FastAPI endpoints for the scheduling queue.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/api/scheduling.py`:

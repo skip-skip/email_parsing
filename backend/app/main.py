@@ -4,9 +4,10 @@ from contextlib import asynccontextmanager
 import loguru
 from fastapi import FastAPI
 
+from backend.app.api.queues import router as queues_router
+from backend.app.api.scheduling import router as scheduling_router
 from backend.app.services.database import close_db, init_db
 from backend.app.services.logging import RequestIDMiddleware, setup_logging
-from backend.app.api.queues import router as queues_router
 from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
 from backend.app.services.outlook.monitor import OutlookMonitor
 
@@ -34,6 +35,7 @@ app = FastAPI(
 
 app.add_middleware(RequestIDMiddleware)
 app.include_router(queues_router)
+app.include_router(scheduling_router)
 
 
 @app.get("/health")
