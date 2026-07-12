@@ -10,8 +10,13 @@ from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import EmailRepository
 from backend.app.services.outlook.base import EmailProvider
 
-POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "30"))
-OUTLOOK_ENABLED = os.environ.get("OUTLOOK_ENABLED", "true").lower() == "true"
+
+def _get_poll_interval() -> int:
+    return int(os.environ.get("POLL_INTERVAL_SECONDS", "30"))
+
+
+def _is_outlook_enabled() -> bool:
+    return os.environ.get("OUTLOOK_ENABLED", "true").lower() == "true"
 
 
 class OutlookMonitor:
@@ -52,14 +57,15 @@ class OutlookMonitor:
             loguru.logger.exception("Error polling Outlook")
 
     def start(self) -> None:
-        if not OUTLOOK_ENABLED:
+        if not _is_outlook_enabled():
             loguru.logger.info("Outlook monitor disabled via OUTLOOK_ENABLED=false")
             return
-        trigger = IntervalTrigger(seconds=POLL_INTERVAL_SECONDS)
+        poll_interval = _get_poll_interval()
+        trigger = IntervalTrigger(seconds=poll_interval)
         self._scheduler.add_job(self._poll, trigger, id="outlook_poll")
         self._scheduler.start()
         loguru.logger.info(
-            "Outlook monitor started (polling every {}s)", POLL_INTERVAL_SECONDS
+            "Outlook monitor started (polling every {}s)", poll_interval
         )
 
     def stop(self) -> None:

@@ -4,7 +4,7 @@
 Write tests for the Outlook integration layer.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/tests/outlook/`

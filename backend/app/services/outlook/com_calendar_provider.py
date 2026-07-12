@@ -68,18 +68,78 @@ class OutlookComCalendarProvider(CalendarProvider):
             f"Failed to connect to Outlook after {MAX_RETRIES} attempts"
         ) from last_error
 
+    def _fetch_events(
+        self, start: datetime, end: datetime
+    ) -> list[OutlookCalendarEvent]:
+        calendar = _get_calendar(self._namespace)
+        items = calendar.Items
+        items.IncludeRecurrences = True
+        items.Sort("[Start]")
+        filter_str = f"[Start] >= '{start.strftime('%m/%d/%Y %I:%M %p')}' AND [End] <= '{end.strftime('%m/%d/%Y %I:%M %p')}'"
+        restricted = items.Restrict(filter_str)
+        return [_map_com_appointment(appt) for appt in restricted]
+
+    def _fetch_free_busy(self, start: datetime, end: datetime) -> FreeBusyInfo:
+        calendar = _get_calendar(self._namespace)
+        items = calendar.Items
+        items.IncludeRecurrences = True
+        items.Sort("[Start]")
+        filter_str = f"[Start] >= '{start.strftime('%m/%d/%Y %I:%M %p')}' AND [End] <= '{end.strftime('%m/%d/%Y %I:%M %p')}'"
+        restricted = items.Restrict(filter_str)
+        busy_periods = []
+        for appt in restricted:
+            if not appt.AllDayEvent:
+                busy_periods.append((appt.Start, appt.End))
+        return FreeBusyInfo(start=start, end=end, busy_periods=busy_periods)
+
+    def _create_event(
+        self, title: str, start: datetime, end: datetime, body: str = ""
+    ) -> str:
+        calendar = _get_calendar(self._namespace)
+        appointment = calendar.Items.Add()
+        appointment.Subject = title
+        appointment.Start = start
+        appointment.End = end
+        appointment.Body = body
+        appointment.ReminderSet = True
+        appointment.ReminderMinutesBeforeStart = 15
+        appointment.Save()
+        entry_id = appointment.EntryID
+        appointment.Send()
+        return entry_id
+
+    def _update_event(
+        self, event_id: str, fields: dict[str, object]
+    ) -> None:
+        try:
+            appointment = self._namespace.GetItemFromID(event_id)
+            if "title" in fields:
+                appointment.Subject = fields["title"]
+            if "start" in fields:
+                appointment.Start = fields["start"]
+            if "end" in fields:
+                appointment.End = fields["end"]
+            if "body" in fields:
+                appointment.Body = fields["body"]
+            appointment.Save()
+        except Exception:
+            logger.warning("Failed to update event: %s", event_id)
+            raise
+
+    def _delete_event(self, event_id: str) -> None:
+        try:
+            appointment = self._namespace.GetItemFromID(event_id)
+            appointment.Delete()
+        except Exception:
+            logger.warning("Failed to delete event: %s", event_id)
+            raise
+
     async def get_events(
         self, start: datetime, end: datetime
     ) -> list[OutlookCalendarEvent]:
         def _fetch():
             self._connect_with_retry()
-            calendar = _get_calendar(self._namespace)
-            items = calendar.Items
-            items.IncludeRecurrences = True
-            items.Sort("[Start]")
-            filter_str = f"[Start] >= '{start.strftime('%m/%d/%Y %I:%M %p')}' AND [End] <= '{end.strftime('%m/%d/%Y %I:%M %p')}'"
-            restricted = items.Restrict(filter_str)
-            return [_map_com_appointment(appt) for appt in restricted]
+            return self._fetch_events(start, end)
 
         return await asyncio.to_thread(_fetch)
 
@@ -88,17 +148,7 @@ class OutlookComCalendarProvider(CalendarProvider):
     ) -> FreeBusyInfo:
         def _fetch():
             self._connect_with_retry()
-            calendar = _get_calendar(self._namespace)
-            items = calendar.Items
-            items.IncludeRecurrences = True
-            items.Sort("[Start]")
-            filter_str = f"[Start] >= '{start.strftime('%m/%d/%Y %I:%M %p')}' AND [End] <= '{end.strftime('%m/%d/%Y %I:%M %p')}'"
-            restricted = items.Restrict(filter_str)
-            busy_periods = []
-            for appt in restricted:
-                if not appt.AllDayEvent:
-                    busy_periods.append((appt.Start, appt.End))
-            return FreeBusyInfo(start=start, end=end, busy_periods=busy_periods)
+            return self._fetch_free_busy(start, end)
 
         return await asyncio.to_thread(_fetch)
 
@@ -107,18 +157,7 @@ class OutlookComCalendarProvider(CalendarProvider):
     ) -> str:
         def _create():
             self._connect_with_retry()
-            calendar = _get_calendar(self._namespace)
-            appointment = calendar.Items.Add()
-            appointment.Subject = title
-            appointment.Start = start
-            appointment.End = end
-            appointment.Body = body
-            appointment.ReminderSet = True
-            appointment.ReminderMinutesBeforeStart = 15
-            appointment.Save()
-            entry_id = appointment.EntryID
-            appointment.Send()
-            return entry_id
+            return self._create_event(title, start, end, body)
 
         return await asyncio.to_thread(_create)
 
@@ -127,31 +166,13 @@ class OutlookComCalendarProvider(CalendarProvider):
     ) -> None:
         def _update():
             self._connect_with_retry()
-            try:
-                appointment = self._namespace.GetItemFromID(event_id)
-                if "title" in fields:
-                    appointment.Subject = fields["title"]
-                if "start" in fields:
-                    appointment.Start = fields["start"]
-                if "end" in fields:
-                    appointment.End = fields["end"]
-                if "body" in fields:
-                    appointment.Body = fields["body"]
-                appointment.Save()
-            except Exception:
-                logger.warning("Failed to update event: %s", event_id)
-                raise
+            self._update_event(event_id, fields)
 
         await asyncio.to_thread(_update)
 
     async def delete_event(self, event_id: str) -> None:
         def _delete():
             self._connect_with_retry()
-            try:
-                appointment = self._namespace.GetItemFromID(event_id)
-                appointment.Delete()
-            except Exception:
-                logger.warning("Failed to delete event: %s", event_id)
-                raise
+            self._delete_event(event_id)
 
         await asyncio.to_thread(_delete)

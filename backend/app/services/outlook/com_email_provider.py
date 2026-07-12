@@ -82,54 +82,63 @@ class OutlookComEmailProvider(EmailProvider):
             f"Failed to connect to Outlook after {MAX_RETRIES} attempts"
         ) from last_error
 
+    def _fetch_messages(self) -> list[EmailMessage]:
+        inbox = _get_inbox(self._namespace)
+        messages = inbox.Items
+        unread = messages.Restrict("[UnRead] = True")
+        unread.Sort("[ReceivedTime]", True)
+        return [_map_com_message(msg) for msg in unread]
+
+    def _fetch_conversation(self, conversation_id: str) -> list[EmailMessage]:
+        inbox = _get_inbox(self._namespace)
+        messages = inbox.Items
+        filter_str = f"[ConversationID] = '{conversation_id}'"
+        conversation = messages.Restrict(filter_str)
+        conversation.Sort("[ReceivedTime]")
+        return [_map_com_message(msg) for msg in conversation]
+
+    def _send_reply(self, conversation_id: str, body: str) -> None:
+        inbox = _get_inbox(self._namespace)
+        messages = inbox.Items
+        filter_str = f"[ConversationID] = '{conversation_id}'"
+        conversation = messages.Restrict(filter_str)
+        conversation.Sort("[ReceivedTime]", True)
+        original = conversation.items[0]
+        reply = original.Reply()
+        reply.Body = body
+        reply.Send()
+
+    def _get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
+        try:
+            message = self._namespace.GetItemFromID(entry_id)
+            return _map_com_message(message)
+        except Exception:
+            return None
+
     async def get_new_messages(self) -> list[EmailMessage]:
         def _fetch():
             self._connect_with_retry()
-            inbox = _get_inbox(self._namespace)
-            messages = inbox.Items
-            unread = messages.Restrict("[UnRead] = True")
-            unread.Sort("[ReceivedTime]", True)
-            return [_map_com_message(msg) for msg in unread]
+            return self._fetch_messages()
 
         return await asyncio.to_thread(_fetch)
 
     async def get_conversation(self, conversation_id: str) -> list[EmailMessage]:
         def _fetch():
             self._connect_with_retry()
-            inbox = _get_inbox(self._namespace)
-            messages = inbox.Items
-            filter_str = f"[ConversationID] = '{conversation_id}'"
-            conversation = messages.Restrict(filter_str)
-            conversation.Sort("[ReceivedTime]")
-            return [_map_com_message(msg) for msg in conversation]
+            return self._fetch_conversation(conversation_id)
 
         return await asyncio.to_thread(_fetch)
 
     async def send_reply(self, conversation_id: str, body: str) -> None:
         def _send():
             self._connect_with_retry()
-            inbox = _get_inbox(self._namespace)
-            messages = inbox.Items
-            filter_str = f"[ConversationID] = '{conversation_id}'"
-            conversation = messages.Restrict(filter_str)
-            conversation.Sort("[ReceivedTime]", True)
-            if conversation.Count == 0:
-                raise ValueError(f"No messages found for conversation: {conversation_id}")
-            original = conversation.Item(1)
-            reply = original.Reply()
-            reply.Body = body
-            reply.Send()
+            self._send_reply(conversation_id, body)
 
         await asyncio.to_thread(_send)
 
     async def get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
         def _fetch():
             self._connect_with_retry()
-            try:
-                message = self._namespace.GetItemFromID(entry_id)
-                return _map_com_message(message)
-            except Exception:
-                logger.warning("Message not found for EntryID: %s", entry_id)
-                return None
+            return self._get_message_by_entry_id(entry_id)
 
         return await asyncio.to_thread(_fetch)
