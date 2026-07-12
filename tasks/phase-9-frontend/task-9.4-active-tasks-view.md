@@ -4,7 +4,7 @@
 Create the UI for viewing accepted and in-progress work.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `frontend/src/pages/ActiveTasks.tsx`

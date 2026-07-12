@@ -16,6 +16,11 @@ interface UIState {
   setSearchQuery: (query: string) => void
   clearSearch: () => void
 
+  activeTaskStatusFilter: string
+  setActiveTaskStatusFilter: (status: string) => void
+  activeTaskClientFilter: string
+  setActiveTaskClientFilter: (client: string) => void
+
   selectedTicketIds: Set<string>
   toggleTicketSelection: (ticketId: string) => void
   selectAllTickets: (ticketIds: string[]) => void
@@ -44,6 +49,11 @@ export const useUIStore = create<UIState>()(
       searchQuery: "",
       setSearchQuery: (query) => set({ searchQuery: query }),
       clearSearch: () => set({ searchQuery: "" }),
+
+      activeTaskStatusFilter: "",
+      setActiveTaskStatusFilter: (status) => set({ activeTaskStatusFilter: status }),
+      activeTaskClientFilter: "",
+      setActiveTaskClientFilter: (client) => set({ activeTaskClientFilter: client }),
 
       selectedTicketIds: new Set<string>(),
       toggleTicketSelection: (ticketId) =>

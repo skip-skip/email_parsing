@@ -114,6 +114,33 @@ export interface LLMHealth {
   }
 }
 
+export interface CalendarEvent {
+  calendar_event_id: string
+  outlook_event_id: string | null
+  start_time: string
+  end_time: string
+  duration: number
+  status: string
+}
+
+export interface ActiveTicket {
+  ticket_id: string
+  status: string
+  client: string | null
+  contact: string | null
+  project_number: string | null
+  task_description: string | null
+  deadline: string | null
+  budget_hours: number | null
+  estimated_hours: number | null
+  priority: number
+  calendar_event_id: string | null
+  conversation_id: string | null
+  created_at: string
+  updated_at: string | null
+  calendar_events: CalendarEvent[]
+}
+
 export interface ApproveDraftRequest {
   edits?: {
     to: string
@@ -193,6 +220,18 @@ export const api = {
         `/api/scheduling/queue/${ticketId}/modify`,
         data,
       ),
+  },
+
+  tickets: {
+    listActive: (params?: {
+      status?: string
+      client?: string
+      sort_by?: string
+      sort_dir?: string
+    }) => apiClient.get<ActiveTicket[]>("/api/tickets/active", { params }),
+
+    get: (ticketId: string) =>
+      apiClient.get<ActiveTicket>(`/api/tickets/${ticketId}`),
   },
 
   aiLogs: {

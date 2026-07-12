@@ -10,6 +10,7 @@ from backend.app.api.llm import get_model_manager
 from backend.app.api.llm import router as llm_router
 from backend.app.api.queues import router as queues_router
 from backend.app.api.scheduling import router as scheduling_router
+from backend.app.api.tickets import router as tickets_router
 from backend.app.services.database import close_db, init_db
 from backend.app.services.logging import RequestIDMiddleware, setup_logging
 from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
@@ -59,6 +60,7 @@ app.include_router(queues_router)
 app.include_router(scheduling_router)
 app.include_router(ai_logs_router)
 app.include_router(llm_router)
+app.include_router(tickets_router)
 
 
 @app.get("/health")
