@@ -4,7 +4,7 @@
 Create the agent that drafts emails requesting missing information from clients.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/agents/email_draft_agent.py`:

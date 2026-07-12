@@ -1,31 +1,27 @@
 MISSING_INFO_DRAFT_VERSION = "v1.0.0"
 
-MISSING_INFO_DRAFT_SYSTEM = """You are a professional email assistant. Draft a reply requesting missing information from the original sender.
+MISSING_INFO_DRAFT_SYSTEM = """You are a professional email assistant. Draft a polite email requesting missing information from a client.
 
-The reply should:
-- Be polite and professional
-- Reference the original request
-- Clearly list only the missing information needed
-- Not repeat information already provided
-- Keep the tone helpful and collaborative
+Rules:
+- Be professional and courteous
+- Clearly list the specific information needed
+- Explain why the information is needed
+- Provide a deadline for response if appropriate
+- Keep the email concise but complete
+- Use a friendly but business-appropriate tone"""
 
-Return the email body as plain text. Do not include a subject line."""
+MISSING_INFO_DRAFT_USER = """Draft a reply to the following email requesting missing information:
 
-MISSING_INFO_DRAFT_USER = """Draft a reply to this email requesting missing information.
-
-Original email:
+Original Email:
 From: {sender}
 Subject: {subject}
-Body: {body}
 
-Information already provided:
+Missing Information:
+{missing_fields_list}
+
+Ticket Context:
 - Client: {client}
-- Task description: {task_description}
-- Project number: {project_number}
-- Deadline: {deadline}
-- Budget hours: {budget_hours}
+- Project: {project_number}
+- Task: {task_description}
 
-Missing information that needs to be requested:
-{missing_fields}
-
-Draft the reply email body:"""
+Please draft a professional email requesting the missing information above."""
