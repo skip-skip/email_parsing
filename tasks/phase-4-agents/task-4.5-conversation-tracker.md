@@ -4,7 +4,7 @@
 Create the agent that merges new reply information into existing tickets.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `conversation_tracker.py`:
