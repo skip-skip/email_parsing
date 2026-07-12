@@ -4,7 +4,7 @@
 Create the UI for reviewing and managing scheduling decisions.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `frontend/src/pages/SchedulingQueue.tsx`
