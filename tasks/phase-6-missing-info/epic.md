@@ -13,7 +13,7 @@ Not Started
 | 6.2 | Build Missing Information Queue Service | Complete | 5.1, 6.1, 2.6 |
 | 6.3 | Build Missing Info API Endpoints | Complete | 6.2 |
 | 6.4 | Conversation Reply Handling | Complete | 4.5, 5.4, 6.2 |
-| 6.5 | Missing Information Flow Tests | Not Started | 6.1–6.4 |
+| 6.5 | Missing Information Flow Tests | Complete | 6.1–6.4 |
 
 ## Acceptance Criteria
 - Draft agent generates professional emails listing missing fields

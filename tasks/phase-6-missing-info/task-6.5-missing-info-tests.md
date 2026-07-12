@@ -4,7 +4,7 @@
 Write tests for the complete missing information flow.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Test email draft agent:
