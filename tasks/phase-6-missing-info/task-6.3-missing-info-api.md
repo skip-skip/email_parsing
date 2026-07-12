@@ -4,7 +4,7 @@
 Create FastAPI endpoints for the missing information queue.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/api/queues.py`:
