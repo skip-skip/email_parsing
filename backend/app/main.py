@@ -6,6 +6,8 @@ from fastapi import FastAPI
 
 from backend.app.services.database import close_db, init_db
 from backend.app.services.logging import RequestIDMiddleware, setup_logging
+from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
+from backend.app.services.outlook.monitor import OutlookMonitor
 
 
 @asynccontextmanager
@@ -13,9 +15,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
     loguru.logger.info("Application starting up")
     await init_db()
+    monitor = OutlookMonitor(OutlookComEmailProvider())
+    monitor.start()
     loguru.logger.info("Application startup complete")
     yield
     loguru.logger.info("Application shutting down")
+    monitor.stop()
     await close_db()
 
 

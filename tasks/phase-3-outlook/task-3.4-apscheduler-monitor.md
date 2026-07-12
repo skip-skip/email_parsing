@@ -4,7 +4,7 @@
 Build the background polling service that detects new emails.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/outlook/monitor.py`
