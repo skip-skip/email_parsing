@@ -6,6 +6,7 @@ from backend.app.services.llm.model_config import (
     get_fallback_model,
     get_model_config,
 )
+from backend.app.services.llm.model_manager import ModelManager
 from backend.app.services.llm.ollama_client import OllamaClient
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "DEFAULT_MODEL",
     "FALLBACK_CHAIN",
     "ModelConfig",
+    "ModelManager",
     "OllamaClient",
     "get_fallback_model",
     "get_model_config",

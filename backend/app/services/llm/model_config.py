@@ -16,8 +16,8 @@ DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
 
 FALLBACK_CHAIN: list[str] = [
     "qwen3:8b",
-    "gemma3:12b",
     "llama3.3:8b",
+    "gemma3:12b",
 ]
 
 MODEL_CONFIGS: dict[str, ModelConfig] = {

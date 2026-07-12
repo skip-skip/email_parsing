@@ -4,7 +4,7 @@
 Implement model fallback for reliability.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/llm/model_manager.py`:
