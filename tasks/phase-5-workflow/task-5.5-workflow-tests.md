@@ -4,7 +4,7 @@
 Write tests for the complete workflow engine.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/tests/workflows/`
