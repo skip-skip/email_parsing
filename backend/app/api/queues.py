@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -36,6 +35,8 @@ class QueueItemResponse(BaseModel):
     missing_fields: list[str]
     created_at: str
     status: str
+    confidence: float
+    confidence_indicator: dict[str, str]
 
 
 class ApproveRequest(BaseModel):
@@ -59,6 +60,8 @@ def _queue_item_to_response(item: Any) -> QueueItemResponse:
         missing_fields=item.missing_fields,
         created_at=item.created_at.isoformat(),
         status=item.status,
+        confidence=item.confidence,
+        confidence_indicator=item.confidence_indicator,
     )
 
 

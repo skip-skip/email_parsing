@@ -19,12 +19,14 @@ class MissingInfoQueue:
         ticket_id: str,
         draft: DraftEmail,
         missing_fields: list[str],
+        confidence: float = 0.0,
     ) -> QueueItem:
         ticket_uuid = uuid.UUID(ticket_id)
         item = QueueItem(
             ticket_id=ticket_uuid,
             draft_email=draft,
             missing_fields=missing_fields,
+            confidence=confidence,
             created_at=datetime.now(),
             status="PENDING",
         )

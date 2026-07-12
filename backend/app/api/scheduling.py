@@ -40,6 +40,8 @@ class SchedulingQueueItemResponse(BaseModel):
     suggestion: ScheduleSuggestionResponse
     status: str
     created_at: str
+    confidence: float
+    confidence_indicator: dict[str, str]
 
 
 class ApproveScheduleRequest(BaseModel):
@@ -80,6 +82,8 @@ def _item_to_response(item: Any) -> SchedulingQueueItemResponse:
         suggestion=_suggestion_to_response(item.suggestion),
         status=item.status,
         created_at=item.created_at.isoformat(),
+        confidence=item.confidence,
+        confidence_indicator=item.confidence_indicator,
     )
 
 

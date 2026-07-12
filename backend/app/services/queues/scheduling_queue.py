@@ -18,11 +18,13 @@ class SchedulingQueue:
         self,
         ticket_id: str,
         suggestion: ScheduleSuggestion,
+        confidence: float | None = None,
     ) -> SchedulingQueueItem:
         ticket_uuid = uuid.UUID(ticket_id)
         item = SchedulingQueueItem(
             ticket_id=ticket_uuid,
             suggestion=suggestion,
+            confidence=confidence if confidence is not None else suggestion.confidence,
             status="PENDING",
             created_at=datetime.now(),
         )

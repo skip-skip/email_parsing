@@ -4,7 +4,7 @@
 Implement confidence-based review routing.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/services/confidence.py`:
