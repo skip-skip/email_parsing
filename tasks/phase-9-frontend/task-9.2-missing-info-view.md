@@ -4,7 +4,7 @@
 Create the UI for reviewing and managing tickets with missing information.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `frontend/src/pages/MissingInfoQueue.tsx`
