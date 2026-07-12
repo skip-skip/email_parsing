@@ -4,7 +4,7 @@
 Define and version all prompt templates used by agents.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/prompts/` directory
