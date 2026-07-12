@@ -4,7 +4,7 @@
 Create the agent that drafts acceptance and decline emails.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/agents/acceptance_email_agent.py`:
