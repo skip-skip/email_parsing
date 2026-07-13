@@ -4,7 +4,7 @@
 Write end-to-end integration tests for the complete workflow.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/tests/integration/`
