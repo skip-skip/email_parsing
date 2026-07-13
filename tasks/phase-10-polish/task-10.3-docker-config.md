@@ -4,7 +4,7 @@
 Create Docker configuration for backend deployment.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/Dockerfile`

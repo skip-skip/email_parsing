@@ -1,0 +1,15 @@
+services:
+  backend:
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app/backend
+      - ./shared:/app/shared
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-aitaskmanager}:${POSTGRES_PASSWORD:-aitaskmanager}@db:5432/${POSTGRES_DB:-aitaskmanager}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-30}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+
+  db:
+    ports:
+      - "5432:5432"
