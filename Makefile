@@ -89,10 +89,10 @@ model: ## Pull default Ollama model (safe if already exists)
 # ──────────────────────────────────────────────
 
 check-python:
-	@command -v python >/dev/null 2>&1 || (echo  ERROR: python not found. Activate your conda environment first. && exit 1)
+	@where python >nul 2>&1 || (echo  ERROR: python not found. Activate your conda environment first. && exit 1)
 
 check-node:
-	@command -v node >/dev/null 2>&1 || (echo  ERROR: node not found. Install from https://nodejs.org && exit 1)
+	@where node >nul 2>&1 || (echo  ERROR: node not found. Install from https://nodejs.org && exit 1)
 
 # ──────────────────────────────────────────────
 #  Development
