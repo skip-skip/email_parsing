@@ -16,6 +16,9 @@ RETRY_DELAY = 1.0
 
 
 def _get_outlook_application():
+    import pythoncom
+
+    pythoncom.CoInitialize()
     import win32com.client
 
     return win32com.client.Dispatch("Outlook.Application")
