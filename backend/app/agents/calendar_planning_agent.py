@@ -30,7 +30,18 @@ class ScheduleSuggestion:
 
 
 class CalendarPlanningAgent:
+    """Suggests work schedule blocks for a ticket based on deadline and budget.
+
+    Distributes budgeted hours across available weekdays before the deadline,
+    creating schedule blocks starting at 9:00 AM each day.
+    """
+
     def __init__(self, ollama_client: OllamaClient | None = None) -> None:
+        """Initialize the agent.
+
+        Args:
+            ollama_client: Ollama client (reserved for future LLM-enhanced planning).
+        """
         self._client = ollama_client or OllamaClient()
 
     async def suggest_schedule(
@@ -41,6 +52,21 @@ class CalendarPlanningAgent:
         task_description: str,
         existing_events: list[dict] | None = None,
     ) -> ScheduleSuggestion:
+        """Generate schedule blocks for a ticket.
+
+        Distributes budgeted hours evenly across weekdays before the deadline,
+        creating blocks from 9:00 AM. Skips weekends.
+
+        Args:
+            ticket_id: The ticket to schedule.
+            deadline: Work must be completed by this datetime.
+            budget_hours: Total hours budgeted for the task.
+            task_description: Description used as block labels.
+            existing_events: Pre-existing calendar events (reserved for future use).
+
+        Returns:
+            ScheduleSuggestion with proposed blocks, total hours, and confidence.
+        """
         now = datetime.now()
         days_until_deadline = (deadline - now).days
 

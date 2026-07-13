@@ -22,7 +22,19 @@ MERGEABLE_FIELDS = [
 
 
 class ConversationTracker:
+    """Tracks email conversation threads and merges new information into tickets.
+
+    When a reply arrives for an existing ticket, this agent parses the new
+    email and merges any updated fields (client, project_number, deadline, etc.)
+    into the ticket record.
+    """
+
     def __init__(self, parsing_agent: EmailParsingAgent | None = None) -> None:
+        """Initialize the tracker.
+
+        Args:
+            parsing_agent: Agent for parsing email content. Creates a default if None.
+        """
         self._parsing_agent = parsing_agent or EmailParsingAgent()
 
     async def merge(
@@ -31,6 +43,16 @@ class ConversationTracker:
         new_email: EmailMessage,
         previous_emails: list[EmailMessage],
     ) -> MergeResult:
+        """Parse a new reply email and merge updated fields into the ticket.
+
+        Args:
+            ticket_id: The ticket to update.
+            new_email: The incoming reply email.
+            previous_emails: Earlier emails in the same conversation.
+
+        Returns:
+            MergeResult describing which fields were updated and their old/new values.
+        """
         parsed = await self._parsing_agent.parse(
             sender=new_email.sender,
             subject=new_email.subject,

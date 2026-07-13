@@ -1,3 +1,9 @@
+"""AI Task Manager — FastAPI application entry point.
+
+Configures the FastAPI application with all routers, middleware, error
+handlers, and the application lifespan (startup/shutdown).
+"""
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 

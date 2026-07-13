@@ -18,7 +18,25 @@ class IntakeResponse:
 
 
 class EmailIntakeAgent:
+    """Processes incoming emails and creates initial database records.
+
+    Checks for duplicate emails (by EntryID) and determines whether
+    the email starts a new conversation thread or continues an existing
+    ticket's conversation.
+    """
+
     async def process(self, message: EmailMessage) -> IntakeResponse:
+        """Process a new email message.
+
+        Creates the email record in the database and determines whether
+        this is a new conversation thread or a reply to an existing ticket.
+
+        Args:
+            message: The incoming email message from Outlook.
+
+        Returns:
+            IntakeResponse with email ID, thread status, and parsing readiness.
+        """
         async with async_session_factory() as session:
             email_repo = EmailRepository(session)
             ticket_repo = TicketRepository(session)

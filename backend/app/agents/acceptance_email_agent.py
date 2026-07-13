@@ -7,6 +7,12 @@ from backend.app.agents.email_draft_agent import DraftEmail
 
 
 class AcceptanceEmailAgent:
+    """Generates acceptance or decline emails for scheduled work.
+
+    Drafts template-based emails confirming the accepted schedule or
+    politely declining a request with a reason.
+    """
+
     def draft_acceptance(
         self,
         ticket_id: str,
@@ -16,6 +22,19 @@ class AcceptanceEmailAgent:
         blocks: list[ScheduleBlock],
         task_description: str | None = None,
     ) -> DraftEmail:
+        """Draft an acceptance email with the proposed schedule.
+
+        Args:
+            ticket_id: The associated ticket ID.
+            client: Client name.
+            contact: Contact person's name or email.
+            subject: Original email subject.
+            blocks: Confirmed schedule blocks.
+            task_description: Task description (included in email body).
+
+        Returns:
+            DraftEmail ready for user review.
+        """
         blocks_text = "\n".join(
             f"  - {b.start_time.strftime('%Y-%m-%d %H:%M')} to {b.end_time.strftime('%H:%M')} ({b.hours}h)"
             for b in blocks
@@ -50,6 +69,18 @@ class AcceptanceEmailAgent:
         subject: str,
         reason: str = "We are unable to accommodate this request at this time.",
     ) -> DraftEmail:
+        """Draft a decline email with a reason.
+
+        Args:
+            ticket_id: The associated ticket ID.
+            client: Client name.
+            contact: Contact person's name or email.
+            subject: Original email subject.
+            reason: Explanation for declining.
+
+        Returns:
+            DraftEmail ready for user review.
+        """
         body = (
             f"Dear {contact or client or 'Client'},\n\n"
             f"Thank you for your request regarding \"{subject}\".\n\n"

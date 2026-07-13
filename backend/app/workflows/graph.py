@@ -18,6 +18,15 @@ from backend.app.workflows.states import WorkflowState
 
 
 def build_workflow_graph() -> StateGraph:
+    """Build the LangGraph workflow graph for ticket processing.
+
+    Defines the complete workflow from email intake through scheduling
+    or missing information handling. Each node performs a single business
+    function. Transitions are deterministic — no LLM determines state changes.
+
+    Returns:
+        An uncompiled StateGraph ready for compilation.
+    """
     graph = StateGraph(WorkflowState)
 
     graph.add_node("receive_email", receive_email)
@@ -48,5 +57,6 @@ def build_workflow_graph() -> StateGraph:
 
 
 def compile_workflow() -> Any:
+    """Build and compile the workflow graph into an executable form."""
     graph = build_workflow_graph()
     return graph.compile()

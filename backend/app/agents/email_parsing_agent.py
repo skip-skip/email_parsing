@@ -21,7 +21,19 @@ LOW_CONFIDENCE = 0.1
 
 
 class EmailParsingAgent:
+    """Extracts structured task information from email text using an LLM.
+
+    Uses prompt templates to instruct the LLM to extract fields such as
+    client name, project number, deadline, budgeted hours, and task
+    description. Logs all interactions to the AI audit trail.
+    """
+
     def __init__(self, ollama_client: OllamaClient | None = None) -> None:
+        """Initialize the agent.
+
+        Args:
+            ollama_client: Ollama client for LLM calls. Creates a default if None.
+        """
         self._client = ollama_client or OllamaClient()
 
     async def parse(
@@ -32,6 +44,19 @@ class EmailParsingAgent:
         received_time: datetime | None = None,
         ticket_id: str | None = None,
     ) -> ParsedEmail:
+        """Parse an email to extract structured task fields.
+
+        Args:
+            sender: Email sender address.
+            subject: Email subject line.
+            body: Email body text.
+            received_time: When the email was received.
+            ticket_id: Associated ticket ID for logging purposes.
+
+        Returns:
+            ParsedEmail with extracted fields and confidence score.
+            Returns a low-confidence result if parsing fails.
+        """
         user_prompt = EMAIL_EXTRACTION_USER.format(
             sender=sender,
             subject=subject,

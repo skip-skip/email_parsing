@@ -27,7 +27,18 @@ class DraftEmail:
 
 
 class EmailDraftAgent:
+    """Generates follow-up emails requesting missing information.
+
+    Uses an LLM to draft a polite email that requests only the specific
+    missing fields. Falls back to a template-based draft if the LLM call fails.
+    """
+
     def __init__(self, ollama_client: OllamaClient | None = None) -> None:
+        """Initialize the agent.
+
+        Args:
+            ollama_client: Ollama client for LLM calls. Creates a default if None.
+        """
         self._client = ollama_client or OllamaClient()
 
     async def draft(
@@ -40,6 +51,20 @@ class EmailDraftAgent:
         task_description: str | None,
         missing_fields: list[str],
     ) -> DraftEmail:
+        """Draft a follow-up email requesting missing information.
+
+        Args:
+            ticket_id: The associated ticket ID.
+            sender: Original email sender to reply to.
+            subject: Original email subject.
+            client: Client name (may be None).
+            project_number: Project number (may be None).
+            task_description: Task description (may be None).
+            missing_fields: List of field names that are missing.
+
+        Returns:
+            DraftEmail with the generated or template-based content.
+        """
         missing_fields_list = "\n".join(f"- {field}" for field in missing_fields)
 
         user_prompt = MISSING_INFO_DRAFT_USER.format(

@@ -20,7 +20,19 @@ def _is_outlook_enabled() -> bool:
 
 
 class OutlookMonitor:
+    """Background service that polls the Outlook inbox for new emails.
+
+    Uses APScheduler to run periodic polls. New emails are detected by
+    their EntryID and stored in the database. Polling can be disabled
+    via the OUTLOOK_ENABLED environment variable.
+    """
+
     def __init__(self, email_provider: EmailProvider) -> None:
+        """Initialize the monitor with an email provider implementation.
+
+        Args:
+            email_provider: Provider used to retrieve messages from Outlook.
+        """
         self._email_provider = email_provider
         self._scheduler = BackgroundScheduler()
         self._last_poll_count = 0
@@ -57,6 +69,11 @@ class OutlookMonitor:
             loguru.logger.exception("Error polling Outlook")
 
     def start(self) -> None:
+        """Start the background polling scheduler.
+
+        Reads the poll interval from POLL_INTERVAL_SECONDS (default: 30).
+        Does nothing if OUTLOOK_ENABLED is set to 'false'.
+        """
         if not _is_outlook_enabled():
             loguru.logger.info("Outlook monitor disabled via OUTLOOK_ENABLED=false")
             return
@@ -69,6 +86,7 @@ class OutlookMonitor:
         )
 
     def stop(self) -> None:
+        """Stop the background polling scheduler."""
         if self._scheduler.running:
             self._scheduler.shutdown(wait=False)
             loguru.logger.info("Outlook monitor stopped")

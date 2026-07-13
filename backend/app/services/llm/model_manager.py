@@ -30,7 +30,19 @@ class ModelUsageStats:
 
 
 class ModelManager:
+    """Manages LLM model selection, fallback chains, and health monitoring.
+
+    Tracks model availability through periodic health checks and
+    automatically falls back to the next model in the chain when one
+    fails. Records usage statistics and model switch events.
+    """
+
     def __init__(self, client: OllamaClient | None = None) -> None:
+        """Initialize the model manager.
+
+        Args:
+            client: Ollama client instance. Creates a default client if None.
+        """
         self._client = client or OllamaClient()
         self._fallback_chain = list(FALLBACK_CHAIN)
         self._health_status: dict[str, ModelHealthStatus] = {}
@@ -58,6 +70,22 @@ class ModelManager:
         prompt: str,
         system_prompt: str = "",
     ) -> tuple[str, str]:
+        """Generate a response using the fallback model chain.
+
+        Tries each model in order. If one fails, logs the failure and
+        attempts the next. Returns the response text and the model name
+        that produced it.
+
+        Args:
+            prompt: The user prompt to send to the model.
+            system_prompt: Optional system-level instructions.
+
+        Returns:
+            A tuple of (response_text, model_name).
+
+        Raises:
+            ConnectionError: If all models in the fallback chain fail.
+        """
         last_error: Exception | None = None
 
         for model in self._fallback_chain:
@@ -108,6 +136,11 @@ class ModelManager:
         )
 
     def check_health(self) -> dict[str, ModelHealthStatus]:
+        """Check availability of all models in the fallback chain.
+
+        Queries Ollama for available models and updates the health status
+        cache. Returns the current health status of all configured models.
+        """
         now = datetime.now(UTC)
         try:
             available_models = self._client.list_models()
@@ -130,6 +163,7 @@ class ModelManager:
         return dict(self._health_status)
 
     def needs_health_check(self) -> bool:
+        """Determine if a health check is due based on the interval."""
         if self._last_health_check is None:
             return True
         elapsed = (datetime.now(UTC) - self._last_health_check).total_seconds()

@@ -19,10 +19,31 @@ class ValidationResult:
 
 
 class TicketValidator:
+    """Validates parsed ticket data against configurable field rules.
+
+    Determines whether all required fields are present and valid.
+    Returns a ValidationResult indicating completeness, missing fields,
+    per-field status, and any warnings (e.g., past deadlines).
+    """
+
     def __init__(self, rules: list[FieldRule] | None = None) -> None:
+        """Initialize the validator with field rules.
+
+        Args:
+            rules: Validation rules to apply. Uses DEFAULT_FIELD_RULES if None.
+        """
         self._rules = rules or DEFAULT_FIELD_RULES
 
     def validate(self, parsed_data: dict[str, Any]) -> ValidationResult:
+        """Validate parsed email data against the configured field rules.
+
+        Args:
+            parsed_data: Dictionary of extracted fields from email parsing.
+
+        Returns:
+            ValidationResult with completeness status, missing fields,
+            per-field validation results, and any warnings.
+        """
         missing_fields: list[str] = []
         field_status: dict[str, bool] = {}
         warnings: list[str] = []

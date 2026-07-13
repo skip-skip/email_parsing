@@ -19,11 +19,24 @@ BASE_DELAY = 1.0
 
 
 class OllamaClient:
+    """HTTP client for the Ollama local LLM API.
+
+    Provides synchronous methods for text generation, JSON generation,
+    and model listing. Includes automatic retry with exponential backoff
+    for transient connection failures.
+    """
+
     def __init__(
         self,
         base_url: str | None = None,
         timeout: int | None = None,
     ) -> None:
+        """Initialize the Ollama client.
+
+        Args:
+            base_url: Ollama server URL. Defaults to OLLAMA_BASE_URL env var.
+            timeout: Request timeout in seconds. Defaults to OLLAMA_TIMEOUT env var.
+        """
         self._base_url = (base_url or OLLAMA_BASE_URL).rstrip("/")
         self._timeout = timeout or OLLAMA_TIMEOUT
 
@@ -60,6 +73,16 @@ class OllamaClient:
         system_prompt: str = "",
         model: str | None = None,
     ) -> str:
+        """Generate a text response from the LLM.
+
+        Args:
+            prompt: The user prompt.
+            system_prompt: Optional system-level instructions.
+            model: Model name override. Uses default if None.
+
+        Returns:
+            The generated text response.
+        """
         config = get_model_config(model)
         payload: dict[str, object] = {
             "model": config.model,
@@ -84,6 +107,21 @@ class OllamaClient:
         system_prompt: str = "",
         model: str | None = None,
     ) -> dict:
+        """Generate a JSON response from the LLM with automatic parsing.
+
+        Retries once if the initial response cannot be parsed as JSON.
+
+        Args:
+            prompt: The user prompt.
+            system_prompt: Optional system-level instructions.
+            model: Model name override. Uses default if None.
+
+        Returns:
+            Parsed JSON as a dictionary.
+
+        Raises:
+            ValueError: If the response cannot be parsed as JSON after retry.
+        """
         for attempt in range(2):
             response_text = self.generate(prompt, system_prompt, model)
             parsed = self._parse_json(response_text)
@@ -117,6 +155,7 @@ class OllamaClient:
         return None
 
     def list_models(self) -> list[str]:
+        """List available models from the Ollama server."""
         response = self._request_with_retry("GET", "/api/tags")
         data = response.json()
         models = data.get("models", [])

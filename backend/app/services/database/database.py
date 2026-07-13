@@ -17,6 +17,10 @@ async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency that yields a database session.
+
+    The session is automatically closed after the request completes.
+    """
     async with async_session_factory() as session:
         try:
             yield session
@@ -25,9 +29,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
+    """Create all database tables defined by SQLAlchemy models."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 
 async def close_db() -> None:
+    """Dispose of the database engine and release connections."""
     await engine.dispose()
