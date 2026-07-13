@@ -6,6 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 
 from backend.app.api.ai_logs import router as ai_logs_router
+from backend.app.api.error_handlers import register_error_handlers
 from backend.app.api.llm import get_model_manager
 from backend.app.api.llm import router as llm_router
 from backend.app.api.queues import router as queues_router
@@ -56,6 +57,7 @@ app = FastAPI(
 )
 
 app.add_middleware(RequestIDMiddleware)
+register_error_handlers(app)
 app.include_router(queues_router)
 app.include_router(scheduling_router)
 app.include_router(ai_logs_router)
