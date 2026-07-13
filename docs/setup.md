@@ -2,6 +2,26 @@
 
 Step-by-step instructions for setting up the AI Task Manager on a clean Windows machine.
 
+## Quick Setup (Makefile)
+
+If you have the prerequisites installed, the entire setup is one command:
+
+```bash
+conda activate ai-task-manager
+make setup
+```
+
+Then start the app:
+
+```bash
+make dev-backend     # API at http://127.0.0.1:8000
+make dev-frontend    # Dashboard at http://localhost:5173
+```
+
+Run `make help` to see all available targets. The manual steps below are provided for reference or if you prefer not to use Make.
+
+---
+
 ## Prerequisites
 
 ### Required Software
@@ -40,6 +60,8 @@ conda env create -f environment.yml
 conda activate ai-task-manager
 ```
 
+Or using the Makefile: `make env` (then activate manually).
+
 This creates an environment named `ai-task-manager` with Python 3.12 and all dependencies.
 
 To update the environment after pulling new changes:
@@ -50,11 +72,13 @@ conda env update -f environment.yml --prune
 
 ## Step 3: Pull Ollama Models
 
-Start Ollama (it runs as a background service on install), then pull the recommended models:
+Start Ollama (it runs as a background service on install), then pull the recommended model:
 
 ```powershell
 ollama pull qwen3:8b
 ```
+
+Or using the Makefile: `make model`
 
 The system supports a fallback chain of models. Pull additional models as desired:
 
@@ -74,6 +98,8 @@ ollama list
 ```powershell
 copy .env.example .env
 ```
+
+Or using the Makefile: `make config` (only creates .env if it doesn't exist).
 
 Edit `.env` with your preferred text editor:
 
@@ -95,6 +121,12 @@ notepad .env
 | `POSTGRES_DB` | PostgreSQL database name (Docker) | `aitaskmanager` | Only used by Docker Compose |
 
 ## Step 5: Start the Backend
+
+```bash
+make dev-backend
+```
+
+Or manually:
 
 ```powershell
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
@@ -129,6 +161,12 @@ Expected response:
 ## Step 6: Start the Frontend (Optional)
 
 The frontend provides a web-based dashboard for reviewing tasks.
+
+```bash
+make dev-frontend
+```
+
+Or manually:
 
 ```powershell
 cd frontend
@@ -213,26 +251,29 @@ python -m uvicorn backend.app.main:app --port 8001 --reload
 
 ## Running Tests
 
+```bash
+make test             # Run all tests
+make test-coverage    # Run with coverage report
+```
+
+Or manually:
+
 ```powershell
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run a specific test file
-pytest backend/tests/test_validation.py
+pytest                # Run all tests
+pytest -v             # Verbose output
+pytest backend/tests/test_validation.py  # Specific file
 ```
 
 ## Code Quality
 
+```bash
+make lint             # Lint + type-check everything
+```
+
+Or manually:
+
 ```powershell
-# Lint
-ruff check backend/
-
-# Format check
-ruff format --check backend/
-
-# Type check
-mypy backend/
+ruff check backend/           # Lint
+ruff format --check backend/  # Format check
+mypy backend/                 # Type check
 ```

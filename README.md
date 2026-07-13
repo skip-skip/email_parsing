@@ -31,41 +31,29 @@ A local-first AI task management assistant that monitors Microsoft Outlook, extr
 
 - Windows 10/11
 - [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
-- [Ollama](https://ollama.com/) with at least one model pulled (e.g., `ollama pull qwen3:8b`)
+- [Node.js 18+](https://nodejs.org)
+- [Ollama](https://ollama.com/)
 - Outlook Desktop (for email/calendar integration)
 
-### 1. Clone and set up the environment
+### One-command setup
 
 ```bash
 git clone <repository-url>
 cd email_parsing
-conda env create -f environment.yml
-conda activate ai-task-manager
+conda activate ai-task-manager   # create env first with: conda env create -f environment.yml
+make setup
 ```
 
-### 2. Configure environment variables
+`make setup` runs everything: installs Python + Node dependencies, creates `.env` if missing, runs database migrations, and pulls the default Ollama model.
+
+### Start the app
 
 ```bash
-copy .env.example .env
+make dev-backend     # API at http://127.0.0.1:8000
+make dev-frontend    # Dashboard at http://localhost:5173
 ```
 
-Edit `.env` as needed. See [Environment Variables](#environment-variables) below.
-
-### 3. Start the backend
-
-```bash
-python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-### 4. Start the frontend (optional)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 5. Verify
+### Verify
 
 Open http://127.0.0.1:8000/health — you should see:
 
@@ -74,6 +62,8 @@ Open http://127.0.0.1:8000/health — you should see:
 ```
 
 The dashboard is available at http://localhost:5173 when running the frontend dev server.
+
+Run `make help` to see all available targets.
 
 ## Environment Variables
 
@@ -112,18 +102,14 @@ This starts:
 
 ## Development
 
+Run `make help` to see all available targets. Common commands:
+
 ```bash
-# Run backend with auto-reload
-python -m uvicorn backend.app.main:app --reload
-
-# Run linter
-ruff check backend/
-
-# Run type checker
-mypy backend/
-
-# Run tests
-pytest
+make dev-backend     # Run backend with auto-reload
+make dev-frontend    # Run frontend dev server
+make lint            # Lint Python + TypeScript
+make test            # Run Python test suite
+make db-seed         # Seed database with test data
 ```
 
 ## Project Structure
