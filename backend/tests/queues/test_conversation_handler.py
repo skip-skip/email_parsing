@@ -4,9 +4,7 @@ import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
-from backend.app.services.conversation_handler import ConversationHandler, ReplyResult
+from backend.app.services.conversation_handler import ConversationHandler
 from shared.schemas.email import EmailMessage
 
 

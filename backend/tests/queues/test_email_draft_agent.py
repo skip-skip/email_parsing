@@ -3,9 +3,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
-from backend.app.agents.email_draft_agent import EmailDraftAgent, DraftEmail
+from backend.app.agents.email_draft_agent import DraftEmail, EmailDraftAgent
 
 
 class TestEmailDraftAgent:

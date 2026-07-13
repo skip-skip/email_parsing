@@ -5,7 +5,9 @@ from dataclasses import dataclass
 
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import EmailRepository
-from backend.app.services.database.repositories.ticket_repository import TicketRepository
+from backend.app.services.database.repositories.ticket_repository import (
+    TicketRepository,
+)
 from backend.app.services.outlook.models import EmailMessage
 
 

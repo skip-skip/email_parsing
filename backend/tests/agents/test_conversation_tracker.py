@@ -3,11 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from backend.app.agents.conversation_tracker import (
     ConversationTracker,
-    MERGEABLE_FIELDS,
 )
 from backend.app.agents.merge_result import MergeResult
 from shared.schemas.email import ParsedEmail

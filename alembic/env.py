@@ -15,9 +15,8 @@ if config.config_file_name is not None:
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./data.db")
 config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 
-from backend.app.services.database.base import Base
-
 import backend.app.models  # noqa: F401 — register models with Base.metadata
+from backend.app.services.database.base import Base
 
 target_metadata = Base.metadata
 

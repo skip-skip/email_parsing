@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from backend.app.services.outlook.base import EmailProvider
 from backend.app.services.outlook.models import EmailMessage

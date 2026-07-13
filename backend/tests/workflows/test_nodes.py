@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from backend.app.workflows.nodes.receive_email import receive_email
-from backend.app.workflows.nodes.draft_missing_info_email import draft_missing_info_email
-from backend.app.workflows.nodes.plan_schedule import plan_schedule
 from backend.app.workflows.nodes.create_calendar_event import create_calendar_event
 from backend.app.workflows.nodes.dispatch_task import dispatch_task
+from backend.app.workflows.nodes.draft_missing_info_email import (
+    draft_missing_info_email,
+)
+from backend.app.workflows.nodes.plan_schedule import plan_schedule
+from backend.app.workflows.nodes.receive_email import receive_email
 from backend.app.workflows.nodes.route_by_validation import route_by_validation
 from backend.app.workflows.states import WorkflowState
 

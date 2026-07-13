@@ -4,9 +4,7 @@ import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
-from backend.app.agents.email_parsing_agent import EmailParsingAgent, LOW_CONFIDENCE
+from backend.app.agents.email_parsing_agent import LOW_CONFIDENCE, EmailParsingAgent
 from shared.schemas.email import ParsedEmail
 
 

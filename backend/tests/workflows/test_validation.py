@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-import pytest
-
-from backend.app.services.validation.validator import TicketValidator, ValidationResult
+from backend.app.services.validation.validator import TicketValidator
 
 
 class TestTicketValidator:

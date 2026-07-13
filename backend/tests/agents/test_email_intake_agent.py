@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from backend.app.agents.email_intake_agent import EmailIntakeAgent, IntakeResponse
 from backend.app.services.outlook.models import EmailMessage
 

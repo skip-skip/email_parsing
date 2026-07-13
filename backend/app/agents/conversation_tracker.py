@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict
 
-from backend.app.agents.merge_result import MergeResult
 from backend.app.agents.email_parsing_agent import EmailParsingAgent
+from backend.app.agents.merge_result import MergeResult
 from backend.app.services.database import async_session_factory
-from backend.app.services.database.repositories.ticket_repository import TicketRepository
-from backend.app.services.database.repositories.email_repository import EmailRepository
-from shared.schemas.email import ParsedEmail, EmailMessage
+from backend.app.services.database.repositories.ticket_repository import (
+    TicketRepository,
+)
+from shared.schemas.email import EmailMessage
 
 logger = logging.getLogger(__name__)
 

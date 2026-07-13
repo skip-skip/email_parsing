@@ -4,8 +4,6 @@ import logging
 import time
 from datetime import datetime
 
-from shared.schemas.email import ParsedEmail
-
 from backend.app.prompts.email_extraction import (
     EMAIL_EXTRACTION_SYSTEM,
     EMAIL_EXTRACTION_USER,
@@ -14,6 +12,7 @@ from backend.app.prompts.email_extraction import (
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.ai_log_repository import AILogRepository
 from backend.app.services.llm.ollama_client import OllamaClient
+from shared.schemas.email import ParsedEmail
 
 logger = logging.getLogger(__name__)
 

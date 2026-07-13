@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.app.workflows.graph import compile_workflow, build_workflow_graph
+from backend.app.workflows.graph import build_workflow_graph, compile_workflow
 
 
 class TestWorkflowGraph:

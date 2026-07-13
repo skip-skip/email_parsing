@@ -4,8 +4,8 @@ import pytest
 
 from backend.app.workflows.states import TicketStatus
 from backend.app.workflows.transitions import (
-    InvalidTransitionError,
     VALID_TRANSITIONS,
+    InvalidTransitionError,
     can_transition,
     get_valid_transitions,
 )

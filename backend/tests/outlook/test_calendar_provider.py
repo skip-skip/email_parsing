@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from backend.app.services.outlook.com_calendar_provider import OutlookComCalendarProvider
+from backend.app.services.outlook.com_calendar_provider import (
+    OutlookComCalendarProvider,
+)
 from backend.tests.outlook.mock_com import MockAppointmentItem, MockOutlookApp
 
 

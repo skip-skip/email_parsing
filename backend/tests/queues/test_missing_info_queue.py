@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from unittest.mock import MagicMock
-
-import pytest
 
 from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.services.queues.missing_info_queue import MissingInfoQueue
