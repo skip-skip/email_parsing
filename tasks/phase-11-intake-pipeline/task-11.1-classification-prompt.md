@@ -4,7 +4,7 @@
 Create an LLM prompt that classifies incoming emails as task requests or non-task emails (newsletters, notifications, spam, etc.).
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/prompts/email_classification.py`:

@@ -2,6 +2,11 @@ from backend.app.prompts.conversation_summary import (
     CONVERSATION_SUMMARY_SYSTEM,
     CONVERSATION_SUMMARY_VERSION,
 )
+from backend.app.prompts.email_classification import (
+    EMAIL_CLASSIFICATION_SYSTEM,
+    EMAIL_CLASSIFICATION_USER,
+    EMAIL_CLASSIFICATION_VERSION,
+)
 from backend.app.prompts.email_extraction import (
     EMAIL_EXTRACTION_SYSTEM,
     EMAIL_EXTRACTION_USER,
@@ -21,6 +26,9 @@ from backend.app.prompts.schedule_suggestion import (
 __all__ = [
     "CONVERSATION_SUMMARY_SYSTEM",
     "CONVERSATION_SUMMARY_VERSION",
+    "EMAIL_CLASSIFICATION_SYSTEM",
+    "EMAIL_CLASSIFICATION_USER",
+    "EMAIL_CLASSIFICATION_VERSION",
     "EMAIL_EXTRACTION_SYSTEM",
     "EMAIL_EXTRACTION_USER",
     "EMAIL_EXTRACTION_VERSION",
