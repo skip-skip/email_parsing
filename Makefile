@@ -1,4 +1,4 @@
-.PHONY: help setup env install config migrate model check-python check-node \
+.PHONY: help all setup env install config migrate model check-python check-node \
        dev dev-backend dev-frontend \
        lint lint-python lint-frontend \
        test test-python test-coverage \
@@ -14,7 +14,8 @@ help: ## Show this help
 	@echo  ───────────────────────────────
 	@echo.
 	@echo  Setup:
-	@echo    make setup         Full setup from a fresh clone
+	@echo    make all           Everything from a fresh clone (start here)
+	@echo    make setup         Install deps + migrate (run after conda activate)
 	@echo    make env           Create conda environment
 	@echo    make install       Install Python + Node dependencies
 	@echo    make config        Create .env (only if missing)
@@ -38,7 +39,22 @@ help: ## Show this help
 	@echo.
 
 # ──────────────────────────────────────────────
-#  Setup (full end-to-end)
+#  Full setup (fresh machine)
+# ──────────────────────────────────────────────
+
+all: env config model ## Everything from a fresh clone — then run the two commands below
+	@echo.
+	@echo  ──────────────────────────────────────────────────────
+	@echo  Two commands left. Paste them into your terminal:
+	@echo.
+	@echo    conda activate ai-task-manager
+	@echo    make setup
+	@echo.
+	@echo  That will install all dependencies and run migrations.
+	@echo  ──────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────
+#  Setup (after conda activate)
 # ──────────────────────────────────────────────
 
 setup: env install config migrate ## Full setup from a fresh clone (run after conda activate)
@@ -66,8 +82,7 @@ migrate: ## Run database migrations
 	@echo  Migrations complete.
 
 model: ## Pull default Ollama model (safe if already exists)
-	@echo  Pulling ollama model qwen3:8b...
-	@ollama pull qwen3:8b
+	@where ollama >nul 2>&1 && (echo  Pulling ollama model qwen3:8b... && ollama pull qwen3:8b) || echo  Ollama not found — skipping. Install from https://ollama.com and run 'make model' later.
 
 # ──────────────────────────────────────────────
 #  Guard checks
