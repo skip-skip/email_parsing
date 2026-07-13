@@ -63,7 +63,7 @@ setup: env install config migrate ## Full setup from a fresh clone (run after co
 
 env: ## Create conda environment (safe if already exists)
 	@echo  Creating conda environment...
-	@conda env create -f environment.yml 2>/dev/null || echo  Environment 'ai-task-manager' already exists, skipping.
+	@conda env create -f environment.yml 2>nul || echo  Environment 'ai-task-manager' already exists, skipping.
 	@echo  Activate it with:  conda activate ai-task-manager
 
 install: ## Install Python and Node.js dependencies
