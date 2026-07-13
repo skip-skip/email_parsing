@@ -14,17 +14,14 @@ import sys
 from alembic.config import Config
 
 from alembic import command
-from backend.app.services.database import engine
-from backend.app.services.database.base import Base
 
 
 async def reset_database() -> None:
-    """Drop all tables managed by SQLAlchemy metadata, then re-create via Alembic."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-    # Re-run Alembic migrations to recreate the schema
+    """Drop all tables and recreate via Alembic migrations."""
     alembic_cfg = Config("alembic.ini")
+    await asyncio.get_event_loop().run_in_executor(
+        None, command.downgrade, alembic_cfg, "base"
+    )
     await asyncio.get_event_loop().run_in_executor(
         None, command.upgrade, alembic_cfg, "head"
     )
