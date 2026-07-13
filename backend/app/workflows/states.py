@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Any, TypedDict
 
 
@@ -11,7 +11,7 @@ class WorkflowState(TypedDict):
     error: str | None
 
 
-class TicketStatus(str, Enum):
+class TicketStatus(StrEnum):
     NEW = "NEW"
     PARSED = "PARSED"
     VALIDATED = "VALIDATED"

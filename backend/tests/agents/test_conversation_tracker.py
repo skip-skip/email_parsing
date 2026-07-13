@@ -67,7 +67,6 @@ class TestConversationTracker:
 
         mock_ticket_repo = MagicMock()
         mock_ticket_repo.get_by_id = AsyncMock(return_value=ticket)
-        mock_email_repo = MagicMock()
 
         parsed = self._make_parsed_email(
             client="Acme Corp",
@@ -81,10 +80,6 @@ class TestConversationTracker:
             patch(
                 "backend.app.agents.conversation_tracker.TicketRepository",
                 return_value=mock_ticket_repo,
-            ),
-            patch(
-                "backend.app.agents.conversation_tracker.EmailRepository",
-                return_value=mock_email_repo,
             ),
             patch(
                 "backend.app.agents.conversation_tracker.EmailParsingAgent",
@@ -118,7 +113,6 @@ class TestConversationTracker:
 
         mock_ticket_repo = MagicMock()
         mock_ticket_repo.get_by_id = AsyncMock(return_value=ticket)
-        mock_email_repo = MagicMock()
 
         parsed = self._make_parsed_email(
             client="New Corp",
@@ -132,10 +126,6 @@ class TestConversationTracker:
             patch(
                 "backend.app.agents.conversation_tracker.TicketRepository",
                 return_value=mock_ticket_repo,
-            ),
-            patch(
-                "backend.app.agents.conversation_tracker.EmailRepository",
-                return_value=mock_email_repo,
             ),
             patch(
                 "backend.app.agents.conversation_tracker.EmailParsingAgent",
@@ -173,7 +163,6 @@ class TestConversationTracker:
 
         mock_ticket_repo = MagicMock()
         mock_ticket_repo.get_by_id = AsyncMock(return_value=ticket)
-        mock_email_repo = MagicMock()
 
         parsed = self._make_parsed_email(
             client="Acme Corp",
@@ -189,10 +178,6 @@ class TestConversationTracker:
             patch(
                 "backend.app.agents.conversation_tracker.TicketRepository",
                 return_value=mock_ticket_repo,
-            ),
-            patch(
-                "backend.app.agents.conversation_tracker.EmailRepository",
-                return_value=mock_email_repo,
             ),
             patch(
                 "backend.app.agents.conversation_tracker.EmailParsingAgent",
@@ -225,7 +210,6 @@ class TestConversationTracker:
 
         mock_ticket_repo = MagicMock()
         mock_ticket_repo.get_by_id = AsyncMock(return_value=ticket)
-        mock_email_repo = MagicMock()
 
         parsed = self._make_parsed_email(
             client="New Client",
@@ -240,10 +224,6 @@ class TestConversationTracker:
             patch(
                 "backend.app.agents.conversation_tracker.TicketRepository",
                 return_value=mock_ticket_repo,
-            ),
-            patch(
-                "backend.app.agents.conversation_tracker.EmailRepository",
-                return_value=mock_email_repo,
             ),
             patch(
                 "backend.app.agents.conversation_tracker.EmailParsingAgent",
@@ -279,7 +259,6 @@ class TestConversationTracker:
 
         mock_ticket_repo = MagicMock()
         mock_ticket_repo.get_by_id = AsyncMock(return_value=None)
-        mock_email_repo = MagicMock()
 
         mock_parsing_agent = MagicMock()
         mock_parsing_agent.parse = AsyncMock(
@@ -290,10 +269,6 @@ class TestConversationTracker:
             patch(
                 "backend.app.agents.conversation_tracker.TicketRepository",
                 return_value=mock_ticket_repo,
-            ),
-            patch(
-                "backend.app.agents.conversation_tracker.EmailRepository",
-                return_value=mock_email_repo,
             ),
             patch(
                 "backend.app.agents.conversation_tracker.EmailParsingAgent",

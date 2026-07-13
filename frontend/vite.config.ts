@@ -14,10 +14,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          query: ["@tanstack/react-query"],
-          ui: ["lucide-react", "clsx", "tailwind-merge", "class-variance-authority"],
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/react-router")) {
+            return "vendor"
+          }
+          if (id.includes("node_modules/@tanstack")) {
+            return "query"
+          }
+          if (id.includes("node_modules/lucide-react") || id.includes("node_modules/clsx") || id.includes("node_modules/tailwind-merge") || id.includes("node_modules/class-variance-authority")) {
+            return "ui"
+          }
         },
       },
     },

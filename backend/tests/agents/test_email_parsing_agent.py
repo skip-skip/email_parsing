@@ -185,7 +185,7 @@ class TestEmailParsingAgent:
             return_value=mock_log_repo,
         ):
             agent = EmailParsingAgent(ollama_client=mock_client)
-            result = asyncio.run(
+            asyncio.run(
                 agent.parse(
                     sender=self.SENDER,
                     subject=self.SUBJECT,
