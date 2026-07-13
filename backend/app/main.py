@@ -9,6 +9,7 @@ from backend.app.api.ai_logs import router as ai_logs_router
 from backend.app.api.error_handlers import register_error_handlers
 from backend.app.api.llm import get_model_manager
 from backend.app.api.llm import router as llm_router
+from backend.app.api.logs import router as logs_router
 from backend.app.api.queues import router as queues_router
 from backend.app.api.scheduling import router as scheduling_router
 from backend.app.api.tickets import router as tickets_router
@@ -63,6 +64,7 @@ app.include_router(scheduling_router)
 app.include_router(ai_logs_router)
 app.include_router(llm_router)
 app.include_router(tickets_router)
+app.include_router(logs_router)
 
 
 @app.get("/health")
