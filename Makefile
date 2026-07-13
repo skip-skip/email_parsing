@@ -44,14 +44,14 @@ help: ## Show this help
 
 all: env config model ## Everything from a fresh clone — then run the two commands below
 	@echo.
-	@echo  ──────────────────────────────────────────────────────
+	@echo  ------------------------------------------------------
 	@echo  Two commands left. Paste them into your terminal:
 	@echo.
 	@echo    conda activate ai-task-manager
 	@echo    make setup
 	@echo.
 	@echo  That will install all dependencies and run migrations.
-	@echo  ──────────────────────────────────────────────────────
+	@echo  ------------------------------------------------------
 
 # ──────────────────────────────────────────────
 #  Setup (after conda activate)
