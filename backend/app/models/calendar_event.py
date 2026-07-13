@@ -29,4 +29,4 @@ class CalendarEvent(Base):
     status: Mapped[str] = mapped_column(String, default="PROPOSED", index=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
-    ticket: Mapped[Ticket] = relationship(lazy="select")
+    ticket: Mapped[Ticket] = relationship(lazy="selectin")

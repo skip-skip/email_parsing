@@ -35,4 +35,4 @@ class AILog(Base):
     execution_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
 
-    ticket: Mapped[Ticket | None] = relationship(lazy="select")
+    ticket: Mapped[Ticket | None] = relationship(lazy="selectin")

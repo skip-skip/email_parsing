@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.calendar_event import CalendarEvent
 from backend.app.models.ticket import Ticket
 from backend.app.services.database import get_db
+from backend.app.services.etag import compute_etag
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -43,6 +44,13 @@ class TicketResponse(BaseModel):
     calendar_events: list[CalendarEventResponse]
 
 
+class PaginatedTicketResponse(BaseModel):
+    items: list[TicketResponse]
+    total: int
+    offset: int
+    limit: int
+
+
 def _calendar_event_to_response(event: CalendarEvent) -> CalendarEventResponse:
     return CalendarEventResponse(
         calendar_event_id=str(event.calendar_event_id),
@@ -74,14 +82,21 @@ def _ticket_to_response(ticket: Ticket, events: list[CalendarEvent]) -> TicketRe
     )
 
 
-@router.get("/active", response_model=list[TicketResponse])
+@router.get("/active", response_model=PaginatedTicketResponse)
 async def list_active_tickets(
+    request: Request,
     status: str | None = Query(None, description="Filter by a single status"),
-    client: str | None = Query(None, description="Filter by client name (case-insensitive partial match)"),
-    sort_by: str = Query("deadline", description="Sort field: deadline, created_at, priority, client"),
+    client: str | None = Query(
+        None, description="Filter by client name (case-insensitive partial match)"
+    ),
+    sort_by: str = Query(
+        "deadline", description="Sort field: deadline, created_at, priority, client"
+    ),
     sort_dir: str = Query("asc", description="Sort direction: asc or desc"),
+    offset: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(50, ge=1, le=200, description="Maximum records to return"),
     db: AsyncSession = Depends(get_db),
-) -> list[TicketResponse]:
+) -> Response:
     statuses = [status.upper()] if status else list(ACTIVE_STATUSES)
     query = select(Ticket).where(Ticket.status.in_(statuses))
 
@@ -100,28 +115,57 @@ async def list_active_tickets(
     else:
         query = query.order_by(sort_col.asc().nullsfirst())
 
-    result = await db.execute(query)
+    # Count total matching records.
+    count_query = select(func.count()).select_from(
+        select(Ticket).where(Ticket.status.in_(statuses)).subquery()
+    )
+    if client:
+        count_query = select(func.count()).select_from(
+            select(Ticket)
+            .where(Ticket.status.in_(statuses))
+            .where(Ticket.client.ilike(f"%{client}%"))
+            .subquery()
+        )
+    total_result = await db.execute(count_query)
+    total = total_result.scalar_one()
+
+    # Fetch paginated results.
+    result = await db.execute(query.offset(offset).limit(limit))
     tickets = list(result.scalars().all())
 
     ticket_ids = [t.ticket_id for t in tickets]
-    events_query = select(CalendarEvent).where(CalendarEvent.ticket_id.in_(ticket_ids))
-    events_result = await db.execute(events_query)
-    all_events = list(events_result.scalars().all())
     events_by_ticket: dict[uuid.UUID, list[CalendarEvent]] = {}
-    for event in all_events:
-        events_by_ticket.setdefault(event.ticket_id, []).append(event)
+    if ticket_ids:
+        events_query = select(CalendarEvent).where(
+            CalendarEvent.ticket_id.in_(ticket_ids)
+        )
+        events_result = await db.execute(events_query)
+        all_events = list(events_result.scalars().all())
+        for event in all_events:
+            events_by_ticket.setdefault(event.ticket_id, []).append(event)
 
-    return [
-        _ticket_to_response(t, events_by_ticket.get(t.ticket_id, []))
-        for t in tickets
+    items = [
+        _ticket_to_response(t, events_by_ticket.get(t.ticket_id, [])) for t in tickets
     ]
+    body = PaginatedTicketResponse(items=items, total=total, offset=offset, limit=limit)
+    etag = compute_etag(body.model_dump())
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+
+    return Response(
+        content=body.model_dump_json(),
+        media_type="application/json",
+        headers={"ETag": etag},
+    )
 
 
 @router.get("/{ticket_id}", response_model=TicketResponse)
 async def get_ticket(
     ticket_id: uuid.UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-) -> TicketResponse:
+) -> Response:
     result = await db.execute(select(Ticket).where(Ticket.ticket_id == ticket_id))
     ticket = result.scalar_one_or_none()
     if ticket is None:
@@ -132,4 +176,14 @@ async def get_ticket(
     )
     events = list(events_result.scalars().all())
 
-    return _ticket_to_response(ticket, events)
+    body = _ticket_to_response(ticket, events)
+    etag = compute_etag(body.model_dump())
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+
+    return Response(
+        content=body.model_dump_json(),
+        media_type="application/json",
+        headers={"ETag": etag},
+    )

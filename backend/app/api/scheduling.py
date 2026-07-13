@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.app.agents.calendar_planning_agent import ScheduleBlock, ScheduleSuggestion
+from backend.app.services.cache import query_cache
 from backend.app.services.queues.scheduling_queue import SchedulingQueue
 
 router = APIRouter(prefix="/api/scheduling", tags=["scheduling"])
@@ -124,6 +125,7 @@ async def approve_schedule(
     if item.status != "APPROVED":
         raise HTTPException(status_code=409, detail="Item already processed")
 
+    query_cache.clear()
     return _item_to_response(item)
 
 
@@ -139,6 +141,7 @@ async def decline_schedule(
     if item.status != "DECLINED":
         raise HTTPException(status_code=409, detail="Item already processed")
 
+    query_cache.clear()
     return _item_to_response(item)
 
 
@@ -160,4 +163,5 @@ async def modify_schedule(
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
 
+    query_cache.clear()
     return _item_to_response(item)

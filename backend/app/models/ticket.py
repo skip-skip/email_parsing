@@ -40,5 +40,5 @@ class Ticket(Base):
     )
 
     emails: Mapped[list[Email]] = relationship(
-        back_populates="ticket", lazy="select"
+        back_populates="ticket", lazy="selectin"
     )

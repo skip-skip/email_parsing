@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.app.agents.email_draft_agent import DraftEmail
+from backend.app.services.cache import query_cache
 from backend.app.services.queues.missing_info_queue import MissingInfoQueue
 
 router = APIRouter(prefix="/api/queues", tags=["queues"])
@@ -100,6 +101,7 @@ async def approve_missing_info(
     if item.status != "APPROVED":
         raise HTTPException(status_code=409, detail="Item already processed")
 
+    query_cache.clear()
     return _queue_item_to_response(item)
 
 
@@ -115,6 +117,7 @@ async def reject_missing_info(
     if item.status != "REJECTED":
         raise HTTPException(status_code=409, detail="Item already processed")
 
+    query_cache.clear()
     return _queue_item_to_response(item)
 
 
@@ -134,4 +137,5 @@ async def update_missing_info_draft(
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
 
+    query_cache.clear()
     return _queue_item_to_response(item)

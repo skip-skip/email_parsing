@@ -48,7 +48,11 @@ class OutlookMonitor:
             new_count = 0
             async with async_session_factory() as session:
                 email_repo = EmailRepository(session)
+                seen_entry_ids: set[str] = set()
                 for msg in messages:
+                    if msg.entry_id in seen_entry_ids:
+                        continue
+                    seen_entry_ids.add(msg.entry_id)
                     existing = await email_repo.get_by_entry_id(msg.entry_id)
                     if existing is None:
                         await email_repo.create(
@@ -79,7 +83,14 @@ class OutlookMonitor:
             return
         poll_interval = _get_poll_interval()
         trigger = IntervalTrigger(seconds=poll_interval)
-        self._scheduler.add_job(self._poll, trigger, id="outlook_poll")
+        self._scheduler.add_job(
+            self._poll,
+            trigger,
+            id="outlook_poll",
+            max_instances=1,
+            misfire_grace_time=max(1, poll_interval // 2),
+            replace_existing=True,
+        )
         self._scheduler.start()
         loguru.logger.info(
             "Outlook monitor started (polling every {}s)", poll_interval

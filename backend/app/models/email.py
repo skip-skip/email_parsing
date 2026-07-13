@@ -32,5 +32,5 @@ class Email(Base):
     )
 
     ticket: Mapped[Ticket | None] = relationship(
-        back_populates="emails", lazy="select"
+        back_populates="emails", lazy="selectin"
     )
