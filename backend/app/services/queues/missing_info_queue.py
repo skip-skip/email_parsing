@@ -4,7 +4,11 @@ import logging
 import uuid
 from datetime import datetime
 
+from sqlalchemy import select
+
 from backend.app.agents.email_draft_agent import DraftEmail
+from backend.app.models.missing_info_queue_record import MissingInfoQueueRecord
+from backend.app.services.database import async_session_factory
 from backend.app.services.queues.queue_item import QueueItem
 
 logger = logging.getLogger(__name__)
@@ -20,10 +24,26 @@ def get_missing_info_queue() -> MissingInfoQueue:
     return _missing_info_queue
 
 
-class MissingInfoQueue:
-    def __init__(self) -> None:
-        self._items: dict[uuid.UUID, QueueItem] = {}
+def _record_to_item(record: MissingInfoQueueRecord) -> QueueItem:
+    draft_data = record.draft_json
+    draft = DraftEmail(
+        to=draft_data["to"],
+        subject=draft_data["subject"],
+        body=draft_data["body"],
+        missing_fields=draft_data["missing_fields"],
+        ticket_id=uuid.UUID(draft_data["ticket_id"]),
+    )
+    return QueueItem(
+        ticket_id=record.ticket_id,
+        draft_email=draft,
+        missing_fields=record.missing_fields,
+        confidence=record.confidence,
+        created_at=record.created_at,
+        status=record.status,
+    )
 
+
+class MissingInfoQueue:
     async def add_to_queue(
         self,
         ticket_id: str,
@@ -32,24 +52,56 @@ class MissingInfoQueue:
         confidence: float = 0.0,
     ) -> QueueItem:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = QueueItem(
+        draft_json = {
+            "to": draft.to,
+            "subject": draft.subject,
+            "body": draft.body,
+            "missing_fields": draft.missing_fields,
+            "ticket_id": str(draft.ticket_id),
+        }
+        async with async_session_factory() as session:
+            record = MissingInfoQueueRecord(
+                ticket_id=ticket_uuid,
+                draft_json=draft_json,
+                missing_fields=missing_fields,
+                confidence=confidence,
+                status="PENDING",
+                created_at=datetime.now(),
+            )
+            session.add(record)
+            await session.commit()
+        logger.info("Added ticket %s to missing info queue", ticket_id)
+        return QueueItem(
             ticket_id=ticket_uuid,
             draft_email=draft,
             missing_fields=missing_fields,
             confidence=confidence,
-            created_at=datetime.now(),
+            created_at=record.created_at,
             status="PENDING",
         )
-        self._items[ticket_uuid] = item
-        logger.info("Added ticket %s to missing info queue", ticket_id)
-        return item
 
     async def get_queue(self) -> list[QueueItem]:
-        return [item for item in self._items.values() if item.status == "PENDING"]
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(MissingInfoQueueRecord).where(
+                    MissingInfoQueueRecord.status == "PENDING"
+                )
+            )
+            records = result.scalars().all()
+            return [_record_to_item(r) for r in records]
 
     async def get_item(self, ticket_id: str) -> QueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        return self._items.get(ticket_uuid)
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(MissingInfoQueueRecord).where(
+                    MissingInfoQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                return None
+            return _record_to_item(record)
 
     async def approve_item(
         self,
@@ -57,17 +109,31 @@ class MissingInfoQueue:
         edits: DraftEmail | None = None,
     ) -> QueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = self._items.get(ticket_uuid)
-        if item is None:
-            logger.warning("Queue item not found for ticket %s", ticket_id)
-            return None
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(MissingInfoQueueRecord).where(
+                    MissingInfoQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("Queue item not found for ticket %s", ticket_id)
+                return None
 
-        if edits is not None:
-            item.draft_email = edits
+            if edits is not None:
+                record.draft_json = {
+                    "to": edits.to,
+                    "subject": edits.subject,
+                    "body": edits.body,
+                    "missing_fields": edits.missing_fields,
+                    "ticket_id": str(edits.ticket_id),
+                }
 
-        item.status = "APPROVED"
-        logger.info("Approved queue item for ticket %s", ticket_id)
-        return item
+            record.status = "APPROVED"
+            await session.commit()
+            await session.refresh(record)
+            logger.info("Approved queue item for ticket %s", ticket_id)
+            return _record_to_item(record)
 
     async def reject_item(
         self,
@@ -75,18 +141,26 @@ class MissingInfoQueue:
         reason: str | None = None,
     ) -> QueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = self._items.get(ticket_uuid)
-        if item is None:
-            logger.warning("Queue item not found for ticket %s", ticket_id)
-            return None
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(MissingInfoQueueRecord).where(
+                    MissingInfoQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("Queue item not found for ticket %s", ticket_id)
+                return None
 
-        item.status = "REJECTED"
-        logger.info(
-            "Rejected queue item for ticket %s. Reason: %s",
-            ticket_id,
-            reason or "No reason provided",
-        )
-        return item
+            record.status = "REJECTED"
+            await session.commit()
+            await session.refresh(record)
+            logger.info(
+                "Rejected queue item for ticket %s. Reason: %s",
+                ticket_id,
+                reason or "No reason provided",
+            )
+            return _record_to_item(record)
 
     async def update_draft(
         self,
@@ -94,11 +168,25 @@ class MissingInfoQueue:
         new_draft: DraftEmail,
     ) -> QueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = self._items.get(ticket_uuid)
-        if item is None:
-            logger.warning("Queue item not found for ticket %s", ticket_id)
-            return None
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(MissingInfoQueueRecord).where(
+                    MissingInfoQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("Queue item not found for ticket %s", ticket_id)
+                return None
 
-        item.draft_email = new_draft
-        logger.info("Updated draft for ticket %s", ticket_id)
-        return item
+            record.draft_json = {
+                "to": new_draft.to,
+                "subject": new_draft.subject,
+                "body": new_draft.body,
+                "missing_fields": new_draft.missing_fields,
+                "ticket_id": str(new_draft.ticket_id),
+            }
+            await session.commit()
+            await session.refresh(record)
+            logger.info("Updated draft for ticket %s", ticket_id)
+            return _record_to_item(record)

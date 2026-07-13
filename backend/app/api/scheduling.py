@@ -8,11 +8,9 @@ from pydantic import BaseModel
 
 from backend.app.agents.calendar_planning_agent import ScheduleBlock, ScheduleSuggestion
 from backend.app.services.cache import query_cache
-from backend.app.services.queues.scheduling_queue import SchedulingQueue
+from backend.app.services.queues.scheduling_queue import get_scheduling_queue
 
 router = APIRouter(prefix="/api/scheduling", tags=["scheduling"])
-
-_queue = SchedulingQueue()
 
 
 class ScheduleBlockRequest(BaseModel):
@@ -89,14 +87,16 @@ def _item_to_response(item: Any) -> SchedulingQueueItemResponse:
 
 
 @router.get("/queue", response_model=list[SchedulingQueueItemResponse])
-async def get_scheduling_queue() -> list[SchedulingQueueItemResponse]:
-    items = await _queue.get_queue()
+async def get_scheduling_queue_endpoint() -> list[SchedulingQueueItemResponse]:
+    queue = get_scheduling_queue()
+    items = await queue.get_queue()
     return [_item_to_response(item) for item in items]
 
 
 @router.get("/queue/{ticket_id}", response_model=SchedulingQueueItemResponse)
 async def get_scheduling_item(ticket_id: str) -> SchedulingQueueItemResponse:
-    item = await _queue.get_item(ticket_id)
+    queue = get_scheduling_queue()
+    item = await queue.get_item(ticket_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
     return _item_to_response(item)
@@ -107,6 +107,7 @@ async def approve_schedule(
     ticket_id: str,
     request: ApproveScheduleRequest | None = None,
 ) -> SchedulingQueueItemResponse:
+    queue = get_scheduling_queue()
     selected_blocks = None
     if request and request.selected_blocks:
         selected_blocks = [
@@ -119,7 +120,7 @@ async def approve_schedule(
             for b in request.selected_blocks
         ]
 
-    item = await _queue.approve_schedule(ticket_id, selected_blocks=selected_blocks)
+    item = await queue.approve_schedule(ticket_id, selected_blocks=selected_blocks)
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
     if item.status != "APPROVED":
@@ -134,8 +135,9 @@ async def decline_schedule(
     ticket_id: str,
     request: DeclineScheduleRequest | None = None,
 ) -> SchedulingQueueItemResponse:
+    queue = get_scheduling_queue()
     reason = request.reason if request else None
-    item = await _queue.decline_schedule(ticket_id, reason=reason)
+    item = await queue.decline_schedule(ticket_id, reason=reason)
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
     if item.status != "DECLINED":
@@ -150,6 +152,7 @@ async def modify_schedule(
     ticket_id: str,
     request: ModifyScheduleRequest,
 ) -> SchedulingQueueItemResponse:
+    queue = get_scheduling_queue()
     blocks = [
         ScheduleBlock(
             start_time=datetime.fromisoformat(b.start_time),
@@ -159,7 +162,7 @@ async def modify_schedule(
         )
         for b in request.blocks
     ]
-    item = await _queue.modify_schedule(ticket_id, blocks)
+    item = await queue.modify_schedule(ticket_id, blocks)
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
 

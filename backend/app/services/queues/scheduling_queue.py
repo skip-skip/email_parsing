@@ -4,16 +4,80 @@ import logging
 import uuid
 from datetime import datetime
 
+from sqlalchemy import select
+
 from backend.app.agents.calendar_planning_agent import ScheduleBlock, ScheduleSuggestion
+from backend.app.models.scheduling_queue_record import SchedulingQueueRecord
+from backend.app.services.database import async_session_factory
 from backend.app.services.queues.scheduling_queue_item import SchedulingQueueItem
 
 logger = logging.getLogger(__name__)
 
+_scheduling_queue: SchedulingQueue | None = None
+
+
+def get_scheduling_queue() -> SchedulingQueue:
+    """Return the shared SchedulingQueue singleton."""
+    global _scheduling_queue
+    if _scheduling_queue is None:
+        _scheduling_queue = SchedulingQueue()
+    return _scheduling_queue
+
+
+def _blocks_to_json(blocks: list[ScheduleBlock]) -> list[dict[str, object]]:
+    return [
+        {
+            "start_time": b.start_time.isoformat(),
+            "end_time": b.end_time.isoformat(),
+            "hours": b.hours,
+            "description": b.description,
+        }
+        for b in blocks
+    ]
+
+
+def _json_to_blocks(data: list[dict[str, object]]) -> list[ScheduleBlock]:
+    return [
+        ScheduleBlock(
+            start_time=datetime.fromisoformat(str(b["start_time"])),
+            end_time=datetime.fromisoformat(str(b["end_time"])),
+            hours=float(b["hours"]),
+            description=str(b.get("description", "")),
+        )
+        for b in data
+    ]
+
+
+def _suggestion_to_json(suggestion: ScheduleSuggestion) -> dict[str, object]:
+    return {
+        "blocks": _blocks_to_json(suggestion.blocks),
+        "total_hours": suggestion.total_hours,
+        "fits_deadline": suggestion.fits_deadline,
+        "confidence": suggestion.confidence,
+    }
+
+
+def _json_to_suggestion(data: dict[str, object]) -> ScheduleSuggestion:
+    return ScheduleSuggestion(
+        blocks=_json_to_blocks(data["blocks"]),
+        total_hours=float(data["total_hours"]),
+        fits_deadline=bool(data["fits_deadline"]),
+        confidence=float(data["confidence"]),
+    )
+
+
+def _record_to_item(record: SchedulingQueueRecord) -> SchedulingQueueItem:
+    suggestion = _json_to_suggestion(record.suggestion_json)
+    return SchedulingQueueItem(
+        ticket_id=record.ticket_id,
+        suggestion=suggestion,
+        confidence=record.confidence,
+        status=record.status,
+        created_at=record.created_at,
+    )
+
 
 class SchedulingQueue:
-    def __init__(self) -> None:
-        self._items: dict[uuid.UUID, SchedulingQueueItem] = {}
-
     async def add_to_queue(
         self,
         ticket_id: str,
@@ -21,27 +85,42 @@ class SchedulingQueue:
         confidence: float | None = None,
     ) -> SchedulingQueueItem:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = SchedulingQueueItem(
-            ticket_id=ticket_uuid,
-            suggestion=suggestion,
-            confidence=confidence if confidence is not None else suggestion.confidence,
-            status="PENDING",
-            created_at=datetime.now(),
-        )
-        self._items[ticket_uuid] = item
+        suggestion_json = _suggestion_to_json(suggestion)
+        async with async_session_factory() as session:
+            record = SchedulingQueueRecord(
+                ticket_id=ticket_uuid,
+                suggestion_json=suggestion_json,
+                confidence=confidence if confidence is not None else suggestion.confidence,
+                status="PENDING",
+                created_at=datetime.now(),
+            )
+            session.add(record)
+            await session.commit()
         logger.info("Added ticket %s to scheduling queue", ticket_id)
-        return item
+        return _record_to_item(record)
 
     async def get_queue(self) -> list[SchedulingQueueItem]:
-        return [
-            item
-            for item in self._items.values()
-            if item.status == "PENDING"
-        ]
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(SchedulingQueueRecord).where(
+                    SchedulingQueueRecord.status == "PENDING"
+                )
+            )
+            records = result.scalars().all()
+            return [_record_to_item(r) for r in records]
 
     async def get_item(self, ticket_id: str) -> SchedulingQueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        return self._items.get(ticket_uuid)
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(SchedulingQueueRecord).where(
+                    SchedulingQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                return None
+            return _record_to_item(record)
 
     async def approve_schedule(
         self,
@@ -49,18 +128,28 @@ class SchedulingQueue:
         selected_blocks: list[ScheduleBlock] | None = None,
     ) -> SchedulingQueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = self._items.get(ticket_uuid)
-        if item is None:
-            logger.warning("Scheduling queue item not found for ticket %s", ticket_id)
-            return None
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(SchedulingQueueRecord).where(
+                    SchedulingQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("Scheduling queue item not found for ticket %s", ticket_id)
+                return None
 
-        if selected_blocks is not None:
-            item.suggestion.blocks = selected_blocks
-            item.suggestion.total_hours = sum(b.hours for b in selected_blocks)
+            if selected_blocks is not None:
+                suggestion = _json_to_suggestion(record.suggestion_json)
+                suggestion.blocks = selected_blocks
+                suggestion.total_hours = sum(b.hours for b in selected_blocks)
+                record.suggestion_json = _suggestion_to_json(suggestion)
 
-        item.status = "APPROVED"
-        logger.info("Approved schedule for ticket %s", ticket_id)
-        return item
+            record.status = "APPROVED"
+            await session.commit()
+            await session.refresh(record)
+            logger.info("Approved schedule for ticket %s", ticket_id)
+            return _record_to_item(record)
 
     async def decline_schedule(
         self,
@@ -68,18 +157,26 @@ class SchedulingQueue:
         reason: str | None = None,
     ) -> SchedulingQueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = self._items.get(ticket_uuid)
-        if item is None:
-            logger.warning("Scheduling queue item not found for ticket %s", ticket_id)
-            return None
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(SchedulingQueueRecord).where(
+                    SchedulingQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("Scheduling queue item not found for ticket %s", ticket_id)
+                return None
 
-        item.status = "DECLINED"
-        logger.info(
-            "Declined schedule for ticket %s. Reason: %s",
-            ticket_id,
-            reason or "No reason provided",
-        )
-        return item
+            record.status = "DECLINED"
+            await session.commit()
+            await session.refresh(record)
+            logger.info(
+                "Declined schedule for ticket %s. Reason: %s",
+                ticket_id,
+                reason or "No reason provided",
+            )
+            return _record_to_item(record)
 
     async def modify_schedule(
         self,
@@ -87,12 +184,23 @@ class SchedulingQueue:
         modified_blocks: list[ScheduleBlock],
     ) -> SchedulingQueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
-        item = self._items.get(ticket_uuid)
-        if item is None:
-            logger.warning("Scheduling queue item not found for ticket %s", ticket_id)
-            return None
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(SchedulingQueueRecord).where(
+                    SchedulingQueueRecord.ticket_id == ticket_uuid
+                )
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("Scheduling queue item not found for ticket %s", ticket_id)
+                return None
 
-        item.suggestion.blocks = modified_blocks
-        item.suggestion.total_hours = sum(b.hours for b in modified_blocks)
-        logger.info("Modified schedule for ticket %s", ticket_id)
-        return item
+            suggestion = _json_to_suggestion(record.suggestion_json)
+            suggestion.blocks = modified_blocks
+            suggestion.total_hours = sum(b.hours for b in modified_blocks)
+            record.suggestion_json = _suggestion_to_json(suggestion)
+
+            await session.commit()
+            await session.refresh(record)
+            logger.info("Modified schedule for ticket %s", ticket_id)
+            return _record_to_item(record)

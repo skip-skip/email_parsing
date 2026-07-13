@@ -17,6 +17,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete
 
 from backend.app.models import AILog, CalendarEvent, Email, Ticket
+from backend.app.models.missing_info_queue_record import MissingInfoQueueRecord
+from backend.app.models.scheduling_queue_record import SchedulingQueueRecord
 from backend.app.services.database import async_session_factory
 
 CLIENTS: list[dict[str, str]] = [
@@ -316,12 +318,87 @@ def _generate_ai_logs(ticket: Ticket, task: dict[str, str]) -> list[AILog]:
     return logs
 
 
+MISSING_FIELDS_OPTIONS = [
+    ["project_number"],
+    ["deadline", "budget_hours"],
+    ["task_description"],
+    ["project_number", "deadline"],
+    ["contact", "budget_hours"],
+    ["task_description", "deadline", "budget_hours"],
+]
+
+
+def _generate_missing_info_item(ticket: Ticket) -> MissingInfoQueueRecord:
+    missing_fields = random.choice(MISSING_FIELDS_OPTIONS)
+    confidence = round(random.uniform(0.4, 0.95), 3)
+    draft_json = {
+        "to": ticket.contact or f"contact@{ticket.client.lower().replace(' ', '')}.com",
+        "subject": f"Re: {ticket.task_description[:50] if ticket.task_description else 'Project Update'}",
+        "body": (
+            f"Hi,\n\nThank you for reaching out about the {ticket.task_description[:40] if ticket.task_description else 'project'}. "
+            f"To proceed, we need the following information:\n\n"
+            + "\n".join(f"- {field.replace('_', ' ').title()}" for field in missing_fields)
+            + "\n\nPlease provide these details at your earliest convenience.\n\nBest regards"
+        ),
+        "missing_fields": missing_fields,
+        "ticket_id": str(ticket.ticket_id),
+    }
+    return MissingInfoQueueRecord(
+        ticket_id=ticket.ticket_id,
+        draft_json=draft_json,
+        missing_fields=missing_fields,
+        confidence=confidence,
+        status=random.choices(["PENDING", "APPROVED"], weights=[70, 30])[0],
+        created_at=ticket.created_at + timedelta(hours=random.randint(1, 6)),
+    )
+
+
+def _generate_scheduling_item(ticket: Ticket) -> SchedulingQueueRecord:
+    hours = ticket.budget_hours or random.uniform(4.0, 20.0)
+    deadline = ticket.deadline or datetime.now() + timedelta(days=14)
+    start = deadline - timedelta(days=random.randint(1, 5), hours=1)
+
+    blocks = []
+    remaining = hours
+    day_offset = 0
+    while remaining > 0:
+        block_hours = min(remaining, random.choice([2.0, 3.0, 4.0]))
+        block_start = start + timedelta(days=day_offset)
+        block_end = block_start + timedelta(hours=block_hours)
+        blocks.append({
+            "start_time": block_start.isoformat(),
+            "end_time": block_end.isoformat(),
+            "hours": block_hours,
+            "description": f"Work block for {ticket.client}",
+        })
+        remaining -= block_hours
+        day_offset += 1
+
+    total_hours = sum(b["hours"] for b in blocks)
+    confidence = round(random.uniform(0.5, 0.95), 3)
+    suggestion_json = {
+        "blocks": blocks,
+        "total_hours": total_hours,
+        "fits_deadline": True,
+        "confidence": confidence,
+    }
+    return SchedulingQueueRecord(
+        ticket_id=ticket.ticket_id,
+        suggestion_json=suggestion_json,
+        confidence=confidence,
+        status=random.choices(["PENDING", "APPROVED"], weights=[60, 40])[0],
+        created_at=ticket.created_at + timedelta(hours=random.randint(2, 12)),
+    )
+
+
 async def seed(count: int = 50, clear: bool = False) -> None:
     async with async_session_factory() as session:
         if clear:
             await session.execute(delete(AILog))
             await session.execute(delete(CalendarEvent))
             await session.execute(delete(Email))
+            await session.execute(delete(MissingInfoQueueRecord))
+            await session.execute(delete(SchedulingQueueRecord))
             await session.execute(delete(Ticket))
             await session.commit()
 
@@ -329,6 +406,8 @@ async def seed(count: int = 50, clear: bool = False) -> None:
         all_emails: list[Email] = []
         all_calendar_events: list[CalendarEvent] = []
         all_ai_logs: list[AILog] = []
+        all_missing_info: list[MissingInfoQueueRecord] = []
+        all_scheduling: list[SchedulingQueueRecord] = []
 
         for i in range(count):
             ticket = _generate_ticket(i, base_time)
@@ -350,21 +429,33 @@ async def seed(count: int = 50, clear: bool = False) -> None:
             ai_logs = _generate_ai_logs(ticket, task)
             all_ai_logs.extend(ai_logs)
 
+            if ticket.status == "WAITING_FOR_INFORMATION":
+                all_missing_info.append(_generate_missing_info_item(ticket))
+            elif ticket.status in ("READY_FOR_SCHEDULING", "PENDING_USER_APPROVAL"):
+                all_scheduling.append(_generate_scheduling_item(ticket))
+
         for email in all_emails:
             session.add(email)
         for event in all_calendar_events:
             session.add(event)
         for log in all_ai_logs:
             session.add(log)
+        for item in all_missing_info:
+            session.add(item)
+        for item in all_scheduling:
+            session.add(item)
 
         await session.commit()
 
         print("Seed data inserted successfully:")
-        print(f"  Tickets:          {count}")
-        print(f"  Emails:           {len(all_emails)}")
-        print(f"  Calendar Events:  {len(all_calendar_events)}")
-        print(f"  AI Logs:          {len(all_ai_logs)}")
-        print(f"  Total records:    {count + len(all_emails) + len(all_calendar_events) + len(all_ai_logs)}")
+        print(f"  Tickets:              {count}")
+        print(f"  Emails:               {len(all_emails)}")
+        print(f"  Calendar Events:      {len(all_calendar_events)}")
+        print(f"  AI Logs:              {len(all_ai_logs)}")
+        print(f"  Missing Info Queue:   {len(all_missing_info)}")
+        print(f"  Scheduling Queue:     {len(all_scheduling)}")
+        total = count + len(all_emails) + len(all_calendar_events) + len(all_ai_logs) + len(all_missing_info) + len(all_scheduling)
+        print(f"  Total records:        {total}")
 
 
 def main() -> None:

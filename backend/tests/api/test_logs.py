@@ -50,7 +50,7 @@ def _make_log_entry(
 class TestReadLogEntries:
     def test_reads_entries_from_file(self, tmp_path: Path) -> None:
         log_file = tmp_path / "test.log"
-        entries = [_make_log_entry("hello"), _make_log_entry("world")]
+        entries = [_make_log_entry("hello", timestamp=1.0), _make_log_entry("world", timestamp=2.0)]
         _write_test_log(log_file, entries)
 
         result = read_log_entries(log_file)
