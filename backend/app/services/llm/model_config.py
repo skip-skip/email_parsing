@@ -12,18 +12,19 @@ class ModelConfig:
     num_predict: int = 2048
 
 
-DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b")
 
 FALLBACK_CHAIN: list[str] = [
-    "qwen3:8b",
-    "llama3.3:8b",
-    "gemma3:12b",
+    "gemma3:4b",
+    "qwen3:1.7b",
+    "llama3.2:3b",
 ]
 
 MODEL_CONFIGS: dict[str, ModelConfig] = {
+    "gemma3:4b": ModelConfig(model="gemma3:4b", temperature=0.6),
+    "qwen3:1.7b": ModelConfig(model="qwen3:1.7b", temperature=0.7),
+    "llama3.2:3b": ModelConfig(model="llama3.2:3b", temperature=0.7),
     "qwen3:8b": ModelConfig(model="qwen3:8b", temperature=0.7),
-    "gemma3:12b": ModelConfig(model="gemma3:12b", temperature=0.6),
-    "llama3.3:8b": ModelConfig(model="llama3.3:8b", temperature=0.7),
 }
 
 

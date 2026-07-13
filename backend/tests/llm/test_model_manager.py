@@ -167,22 +167,22 @@ class TestModelManagerTracking:
 class TestModelManagerHealth:
     def test_check_health_returns_status(self) -> None:
         mock_client = MagicMock()
-        mock_client.list_models.return_value = ["qwen3:8b", "llama3.3:8b"]
+        mock_client.list_models.return_value = ["gemma3:4b", "qwen3:1.7b"]
         manager = ModelManager(client=mock_client)
 
         health = manager.check_health()
 
         assert len(health) == len(FALLBACK_CHAIN)
-        assert health["qwen3:8b"].available is True
-        assert health["llama3.3:8b"].available is True
-        assert health["gemma3:12b"].available is False
+        assert health["gemma3:4b"].available is True
+        assert health["qwen3:1.7b"].available is True
+        assert health["llama3.2:3b"].available is False
 
     def test_check_health_with_all_models_available(self) -> None:
         mock_client = MagicMock()
         mock_client.list_models.return_value = [
-            "qwen3:8b",
-            "llama3.3:8b",
-            "gemma3:12b",
+            "gemma3:4b",
+            "qwen3:1.7b",
+            "llama3.2:3b",
         ]
         manager = ModelManager(client=mock_client)
 
@@ -230,9 +230,9 @@ class TestModelManagerFallbackChain:
         mock_client = MagicMock()
         manager = ModelManager(client=mock_client)
         assert manager.fallback_chain == [
-            "qwen3:8b",
-            "llama3.3:8b",
-            "gemma3:12b",
+            "gemma3:4b",
+            "qwen3:1.7b",
+            "llama3.2:3b",
         ]
 
     def test_fallback_chain_is_copy(self) -> None:
@@ -241,7 +241,7 @@ class TestModelManagerFallbackChain:
         chain = manager.fallback_chain
         chain.append("extra:model")
         assert manager.fallback_chain == [
-            "qwen3:8b",
-            "llama3.3:8b",
-            "gemma3:12b",
+            "gemma3:4b",
+            "qwen3:1.7b",
+            "llama3.2:3b",
         ]

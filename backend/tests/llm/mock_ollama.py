@@ -40,7 +40,7 @@ class MockOllamaHandler(BaseHTTPRequestHandler):
 
         models = self.mock_responses.get(
             "tags",
-            {"models": [{"name": "qwen3:8b"}, {"name": "llama3.3:8b"}, {"name": "gemma3:12b"}]},
+            {"models": [{"name": "gemma3:4b"}, {"name": "qwen3:1.7b"}, {"name": "llama3.2:3b"}]},
         )
         self._send_json(models)
 

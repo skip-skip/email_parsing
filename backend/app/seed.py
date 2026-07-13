@@ -153,7 +153,7 @@ STATUSES = ["NEW", "PARSED", "VALIDATED", "WAITING_FOR_INFORMATION",
 
 CALENDAR_STATUSES = ["PROPOSED", "CONFIRMED", "CANCELLED"]
 
-AI_MODELS = ["qwen3:8b", "gemma3:12b", "llama3.3:8b"]
+AI_MODELS = ["gemma3:4b", "qwen3:1.7b", "llama3.2:3b"]
 
 PROMPT_VERSIONS = ["v1.0", "v1.1", "v2.0", "v2.1"]
 

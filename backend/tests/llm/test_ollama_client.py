@@ -68,7 +68,7 @@ class TestOllamaClientGenerate:
         client.generate("test")
 
         requests = mock_server.get_request_log()
-        assert requests[0]["model"] == "qwen3:8b"
+        assert requests[0]["model"] == "gemma3:4b"
 
 
 class TestOllamaClientRetryLogic:
