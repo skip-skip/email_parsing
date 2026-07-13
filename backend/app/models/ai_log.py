@@ -22,12 +22,12 @@ class AILog(Base):
     ticket_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("tickets.ticket_id"), nullable=True, index=True
     )
-    model: Mapped[str] = mapped_column(String)
+    model: Mapped[str] = mapped_column(String, index=True)
     prompt_version: Mapped[str] = mapped_column(String)
     prompt: Mapped[str] = mapped_column(Text)
     response: Mapped[str] = mapped_column(Text)
     parsed_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True, index=True)
     input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     success: Mapped[bool] = mapped_column(Boolean, default=True, index=True)

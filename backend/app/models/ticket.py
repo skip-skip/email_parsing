@@ -22,14 +22,14 @@ class Ticket(Base):
     status: Mapped[str] = mapped_column(
         String, default="NEW", index=True
     )
-    client: Mapped[str | None] = mapped_column(String, nullable=True)
+    client: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     contact: Mapped[str | None] = mapped_column(String, nullable=True)
     project_number: Mapped[str | None] = mapped_column(String, nullable=True)
     task_description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    deadline: Mapped[datetime | None] = mapped_column(nullable=True)
+    deadline: Mapped[datetime | None] = mapped_column(nullable=True, index=True)
     budget_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     estimated_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
-    priority: Mapped[int] = mapped_column(Integer, default=0)
+    priority: Mapped[int] = mapped_column(Integer, default=0, index=True)
     calendar_event_id: Mapped[str | None] = mapped_column(String, nullable=True)
     conversation_id: Mapped[str | None] = mapped_column(
         String, nullable=True, index=True

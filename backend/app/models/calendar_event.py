@@ -23,10 +23,10 @@ class CalendarEvent(Base):
         ForeignKey("tickets.ticket_id"), index=True
     )
     outlook_event_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    start_time: Mapped[datetime] = mapped_column()
+    start_time: Mapped[datetime] = mapped_column(index=True)
     end_time: Mapped[datetime] = mapped_column()
     duration: Mapped[float] = mapped_column(Float)
-    status: Mapped[str] = mapped_column(String, default="PROPOSED")
+    status: Mapped[str] = mapped_column(String, default="PROPOSED", index=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     ticket: Mapped[Ticket] = relationship(lazy="select")

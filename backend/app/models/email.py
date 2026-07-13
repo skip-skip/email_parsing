@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, JSON, String, Text, func
+from sqlalchemy import JSON, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.services.database.base import Base
@@ -21,10 +21,10 @@ class Email(Base):
     )
     conversation_id: Mapped[str] = mapped_column(String, index=True)
     entry_id: Mapped[str] = mapped_column(String, unique=True)
-    sender: Mapped[str] = mapped_column(String)
+    sender: Mapped[str] = mapped_column(String, index=True)
     subject: Mapped[str] = mapped_column(String)
     body: Mapped[str] = mapped_column(Text)
-    received_time: Mapped[datetime] = mapped_column()
+    received_time: Mapped[datetime] = mapped_column(index=True)
     attachments: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     ticket_id: Mapped[uuid.UUID | None] = mapped_column(
