@@ -57,13 +57,13 @@ all: env config model ## Everything from a fresh clone — then run the two comm
 #  Setup (after conda activate)
 # ──────────────────────────────────────────────
 
-setup: env install config migrate ## Full setup from a fresh clone (run after conda activate)
+setup: install config migrate ## Install deps + migrate (run after conda activate)
 	@echo.
 	@echo  Setup complete. Run 'make help' to see available targets.
 
 env: ## Create conda environment (safe if already exists)
-	@echo  Creating conda environment...
-	@conda env create -f environment.yml 2>nul || echo  Environment 'ai-task-manager' already exists, skipping.
+	@where conda >nul 2>&1 || (echo  ERROR: conda not found. && exit 1)
+	@conda env list | findstr /C:"ai-task-manager" >nul 2>&1 && echo  Environment 'ai-task-manager' already exists, skipping. || (echo  Creating conda environment... && conda env create -f environment.yml)
 	@echo  Activate it with:  conda activate ai-task-manager
 
 install: ## Install Python and Node.js dependencies
