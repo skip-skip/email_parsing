@@ -4,7 +4,7 @@
 Create an agent that uses the LLM to determine whether an email is a real task request.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Create `backend/app/agents/email_classification_agent.py`:
