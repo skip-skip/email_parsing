@@ -6,6 +6,7 @@ handlers, and the application lifespan (startup/shutdown).
 
 from __future__ import annotations
 
+import asyncio
 import os
 import time
 from collections.abc import AsyncGenerator
@@ -37,10 +38,10 @@ _scheduler: AsyncIOScheduler | None = None
 _start_time: float = time.monotonic()
 
 
-def _health_check_job() -> None:
+async def _health_check_job() -> None:
     manager = get_model_manager()
     if manager.needs_health_check():
-        manager.check_health()
+        await asyncio.to_thread(manager.check_health)
         loguru.logger.debug("LLM health check completed")
 
 
@@ -57,7 +58,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _scheduler.add_job(_health_check_job, "interval", minutes=5, max_instances=1)
     _scheduler.start()
     manager = get_model_manager()
-    manager.check_health()
+    await asyncio.to_thread(manager.check_health)
     loguru.logger.info("Application startup complete")
     yield
     loguru.logger.info("Application shutting down")

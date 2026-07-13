@@ -65,6 +65,8 @@ class OutlookMonitor:
                             attachments=msg.attachments,
                         )
                         new_count += 1
+                    if new_count % 10 == 0 and new_count > 0:
+                        await session.commit()
                 await session.commit()
             self._last_poll_count = new_count
             if new_count > 0:

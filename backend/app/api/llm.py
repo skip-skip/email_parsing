@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter
@@ -17,7 +18,7 @@ def get_model_manager() -> ModelManager:
 
 @router.get("/health")
 async def llm_health() -> dict[str, Any]:
-    health = _manager.check_health()
+    health = await asyncio.to_thread(_manager.check_health)
     return {
         "status": "healthy" if any(h.available for h in health.values()) else "degraded",
         "models": {

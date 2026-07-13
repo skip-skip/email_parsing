@@ -1,7 +1,7 @@
 import os
 from collections.abc import AsyncGenerator
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -21,7 +21,22 @@ if DATABASE_URL.startswith("postgresql"):
         "pool_pre_ping": True,
     }
 
-engine = create_async_engine(DATABASE_URL, echo=False, **_pool_kwargs)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+    **_pool_kwargs,
+)
+
+
+if "sqlite" in DATABASE_URL:
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_conn, _connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
 
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
