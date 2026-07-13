@@ -606,10 +606,11 @@ ai-task-manager/
 │   │   ├── outlook/
 │   │   ├── llm/
 │   │   ├── scheduler/
-│   │   └── database/
+│   │   ├── database/
+│   │   ├── queues/
+│   │   └── validation/
 │   ├── models/
 │   ├── prompts/
-│   ├── queues/
 │   └── tests/
 │
 ├── frontend/

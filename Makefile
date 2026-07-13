@@ -146,8 +146,4 @@ db-verify: check-python ## Verify all migrations apply and rollback cleanly
 	python -m backend.app.verify_migrations
 
 db-reset: check-python ## Reset database (WARNING: deletes all data)
-	@echo  WARNING: This will delete all data in the database.
-	@set /p confirm="Are you sure? [y/N] " && if not "%confirm%"=="y" (echo  Cancelled. && exit /b 1)
-	-del /f data.db 2>nul
-	python -m alembic upgrade head
-	@echo  Database reset complete.
+	python -m backend.app.reset_db

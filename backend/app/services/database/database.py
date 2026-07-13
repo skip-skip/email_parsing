@@ -1,13 +1,12 @@
 import os
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-from backend.app.services.database.base import Base
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./data.db")
 
@@ -40,9 +39,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Create all database tables defined by SQLAlchemy models."""
+    """Verify database connectivity.
+
+    Schema management is handled exclusively by Alembic migrations.
+    """
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("SELECT 1"))
 
 
 async def close_db() -> None:

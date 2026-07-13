@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete
 
 from backend.app.models import AILog, CalendarEvent, Email, Ticket
-from backend.app.services.database import async_session_factory, init_db
+from backend.app.services.database import async_session_factory
 
 CLIENTS: list[dict[str, str]] = [
     {"client": "Acme Corp", "domain": "acme.com"},
@@ -317,8 +317,6 @@ def _generate_ai_logs(ticket: Ticket, task: dict[str, str]) -> list[AILog]:
 
 
 async def seed(count: int = 50, clear: bool = False) -> None:
-    await init_db()
-
     async with async_session_factory() as session:
         if clear:
             await session.execute(delete(AILog))
