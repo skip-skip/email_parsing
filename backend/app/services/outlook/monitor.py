@@ -8,6 +8,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import EmailRepository
+from backend.app.services.email_processor import EmailProcessor
 from backend.app.services.outlook.base import EmailProvider
 
 
@@ -36,14 +37,16 @@ class OutlookMonitor:
         self._email_provider = email_provider
         self._scheduler = AsyncIOScheduler()
         self._last_poll_count = 0
+        self._processor = EmailProcessor()
 
     async def _poll_async(self) -> None:
         try:
             messages = await self._email_provider.get_new_messages()
             new_count = 0
+            new_messages: list = []
+            seen_entry_ids: set[str] = set()
             async with async_session_factory() as session:
                 email_repo = EmailRepository(session)
-                seen_entry_ids: set[str] = set()
                 for msg in messages:
                     if msg.entry_id in seen_entry_ids:
                         continue
@@ -59,10 +62,33 @@ class OutlookMonitor:
                             received_time=msg.received_time,
                             attachments=msg.attachments,
                         )
+                        new_messages.append(msg)
                         new_count += 1
                     if new_count % 10 == 0 and new_count > 0:
                         await session.commit()
                 await session.commit()
+
+            for msg in new_messages:
+                try:
+                    result = await self._processor.process_new_email(msg)
+                    if result.is_task:
+                        loguru.logger.info(
+                            "Processed task email {} -> ticket {} (workflow: {})",
+                            msg.entry_id,
+                            result.ticket_id,
+                            result.workflow_status,
+                        )
+                    else:
+                        loguru.logger.debug(
+                            "Email {} classified as non-task ({})",
+                            msg.entry_id,
+                            result.classification.category if result.classification else "unknown",
+                        )
+                except Exception:
+                    loguru.logger.exception(
+                        "Error processing email {} through pipeline", msg.entry_id
+                    )
+
             self._last_poll_count = new_count
             if new_count > 0:
                 loguru.logger.info("Detected {} new emails", new_count)
