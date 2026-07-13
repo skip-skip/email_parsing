@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.app.agents.email_classification_agent import ClassificationResult
-from backend.app.services.email_processor import EmailProcessor, ProcessingResult
+from backend.app.services.email_processor import (
+    CircuitBreaker,
+    EmailProcessor,
+    ProcessingResult,
+)
 from backend.app.services.outlook.models import EmailMessage
 
 
@@ -288,3 +293,162 @@ class TestEmailProcessor:
         result = asyncio.run(processor.process_new_email(message))
 
         assert result.entry_id == "unique-entry-123"
+
+
+class TestCircuitBreaker:
+    """Tests for CircuitBreaker."""
+
+    def test_closed_by_default(self) -> None:
+        cb = CircuitBreaker()
+        assert cb.is_open is False
+
+    def test_opens_after_threshold_failures(self) -> None:
+        cb = CircuitBreaker(failure_threshold=3)
+        cb.record_failure()
+        cb.record_failure()
+        assert cb.is_open is False
+        cb.record_failure()
+        assert cb.is_open is True
+
+    def test_skips_when_open(self) -> None:
+        cb = CircuitBreaker(failure_threshold=2)
+        cb.record_failure()
+        cb.record_failure()
+        assert cb.is_open is True
+
+    def test_closes_after_cooldown(self) -> None:
+        cb = CircuitBreaker(failure_threshold=2, cooldown_seconds=0.1)
+        cb.record_failure()
+        cb.record_failure()
+        assert cb.is_open is True
+        time.sleep(0.15)
+        assert cb.is_open is False
+
+    def test_resets_on_success(self) -> None:
+        cb = CircuitBreaker(failure_threshold=3)
+        cb.record_failure()
+        cb.record_failure()
+        cb.record_success()
+        assert cb.is_open is False
+        cb.record_failure()
+        assert cb.is_open is False
+
+    def test_closes_immediately_on_success(self) -> None:
+        cb = CircuitBreaker(failure_threshold=2, cooldown_seconds=60)
+        cb.record_failure()
+        cb.record_failure()
+        assert cb.is_open is True
+        cb.record_success()
+        assert cb.is_open is False
+
+
+class TestEmailProcessorCircuitBreaker:
+    """Tests for EmailProcessor circuit breaker integration."""
+
+    def _make_message(
+        self, entry_id: str = "entry-001", sender: str = "bob@example.com"
+    ) -> EmailMessage:
+        return EmailMessage(
+            conversation_id="conv-001",
+            entry_id=entry_id,
+            sender=sender,
+            subject="Task",
+            body="Do something",
+            received_time=None,
+        )
+
+    @patch("backend.app.services.email_processor.async_session_factory")
+    @patch("backend.app.services.email_processor.EmailClassificationAgent")
+    def test_classification_skipped_when_breaker_open(
+        self,
+        mock_classifier_cls: MagicMock,
+        mock_session_factory: MagicMock,
+    ) -> None:
+        mock_classifier = MagicMock()
+        mock_classifier.classify = AsyncMock()
+        mock_classifier._fail_open_result.return_value = ClassificationResult(
+            is_task=True, category="other", confidence=0.0,
+            reason="Circuit breaker open — skipping classification",
+        )
+        mock_classifier_cls.return_value = mock_classifier
+
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__.return_value = mock_session
+
+        cb = CircuitBreaker(failure_threshold=1)
+        cb.record_failure()
+        processor = EmailProcessor(
+            classification_agent=mock_classifier, circuit_breaker=cb
+        )
+        message = self._make_message()
+        result = asyncio.run(processor.process_new_email(message))
+
+        mock_classifier.classify.assert_not_awaited()
+        assert result.is_task is True
+
+    @patch("backend.app.services.email_processor.async_session_factory")
+    @patch("backend.app.services.email_processor.EmailClassificationAgent")
+    def test_breaker_opens_after_consecutive_failures(
+        self,
+        mock_classifier_cls: MagicMock,
+        mock_session_factory: MagicMock,
+    ) -> None:
+        mock_classifier = MagicMock()
+        mock_classifier.classify = AsyncMock(side_effect=Exception("LLM down"))
+        mock_classifier._fail_open_result.return_value = ClassificationResult(
+            is_task=True, category="other", confidence=0.0, reason="fail-open",
+        )
+        mock_classifier_cls.return_value = mock_classifier
+
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__.return_value = mock_session
+
+        cb = CircuitBreaker(failure_threshold=2)
+        processor = EmailProcessor(
+            classification_agent=mock_classifier, circuit_breaker=cb
+        )
+
+        for i in range(2):
+            result = asyncio.run(
+                processor.process_new_email(self._make_message(entry_id=f"e-{i}"))
+            )
+
+        assert cb.is_open is True
+        assert result.error is not None
+
+    @patch("backend.app.services.email_processor.async_session_factory")
+    @patch("backend.app.services.email_processor.EmailClassificationAgent")
+    def test_breaker_resets_on_success(
+        self,
+        mock_classifier_cls: MagicMock,
+        mock_session_factory: MagicMock,
+    ) -> None:
+        mock_classifier = MagicMock()
+        call_count = 0
+
+        async def classify_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 2:
+                raise Exception("LLM down")
+            return ClassificationResult(
+                is_task=False, category="newsletter", confidence=0.9, reason="newsletter",
+            )
+
+        mock_classifier.classify = AsyncMock(side_effect=classify_side_effect)
+        mock_classifier_cls.return_value = mock_classifier
+
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__.return_value = mock_session
+
+        cb = CircuitBreaker(failure_threshold=3)
+        processor = EmailProcessor(
+            classification_agent=mock_classifier, circuit_breaker=cb
+        )
+
+        for i in range(3):
+            asyncio.run(
+                processor.process_new_email(self._make_message(entry_id=f"e-{i}"))
+            )
+
+        assert cb.is_open is False

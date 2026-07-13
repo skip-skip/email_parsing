@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 import uuid
 from dataclasses import dataclass, field
 
@@ -25,6 +26,64 @@ from backend.app.services.outlook.models import EmailMessage
 from backend.app.workflows.graph import compile_workflow
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_FAILURE_THRESHOLD = 3
+DEFAULT_COOLDOWN_SECONDS = 300
+
+
+class CircuitBreaker:
+    """Circuit breaker that skips classification after consecutive failures.
+
+    Opens after ``failure_threshold`` consecutive failures and stays open
+    for ``cooldown_seconds``.  Closes again once the cooldown expires and
+    the next attempt succeeds.
+    """
+
+    def __init__(
+        self,
+        failure_threshold: int = DEFAULT_FAILURE_THRESHOLD,
+        cooldown_seconds: float = DEFAULT_COOLDOWN_SECONDS,
+    ) -> None:
+        self._failure_threshold = failure_threshold
+        self._cooldown_seconds = cooldown_seconds
+        self._consecutive_failures = 0
+        self._last_failure_time: float | None = None
+        self._is_open = False
+
+    @property
+    def is_open(self) -> bool:
+        if not self._is_open:
+            return False
+        if self._last_failure_time is None:
+            return False
+        elapsed = time.monotonic() - self._last_failure_time
+        if elapsed >= self._cooldown_seconds:
+            logger.info(
+                "Circuit breaker cooldown expired, allowing next attempt"
+            )
+            self._is_open = False
+            return False
+        return True
+
+    def record_success(self) -> None:
+        if self._consecutive_failures > 0 or self._is_open:
+            logger.info(
+                "Circuit breaker closed after %d consecutive failures",
+                self._consecutive_failures,
+            )
+        self._consecutive_failures = 0
+        self._is_open = False
+        self._last_failure_time = None
+
+    def record_failure(self) -> None:
+        self._consecutive_failures += 1
+        self._last_failure_time = time.monotonic()
+        if self._consecutive_failures >= self._failure_threshold and not self._is_open:
+            self._is_open = True
+            logger.warning(
+                "Circuit breaker opened after %d consecutive failures",
+                self._consecutive_failures,
+            )
 
 
 @dataclass
@@ -50,8 +109,10 @@ class EmailProcessor:
     def __init__(
         self,
         classification_agent: EmailClassificationAgent | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
     ) -> None:
         self._classifier = classification_agent or EmailClassificationAgent()
+        self._circuit_breaker = circuit_breaker or CircuitBreaker()
 
     async def process_new_email(self, message: EmailMessage) -> ProcessingResult:
         """Process a new email through the classification and workflow pipeline.
@@ -65,11 +126,23 @@ class EmailProcessor:
         result = ProcessingResult(entry_id=message.entry_id)
 
         try:
+            if self._circuit_breaker.is_open:
+                logger.warning(
+                    "Circuit breaker open — skipping classification for %s",
+                    message.entry_id,
+                )
+                result.classification = self._classifier._fail_open_result(
+                    message.sender, message.subject
+                )
+                result.is_task = True
+                return result
+
             classification = await self._classifier.classify(
                 sender=message.sender,
                 subject=message.subject,
                 body=message.body,
             )
+            self._circuit_breaker.record_success()
             result.classification = classification
             result.is_task = classification.is_task
 
@@ -99,6 +172,7 @@ class EmailProcessor:
             )
 
         except Exception:
+            self._circuit_breaker.record_failure()
             logger.exception("Failed to process email %s", message.entry_id)
             result.error = "Processing failed — see logs for details"
 
