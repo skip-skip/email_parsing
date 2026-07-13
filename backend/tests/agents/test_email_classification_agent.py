@@ -4,8 +4,10 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.app.agents.email_classification_agent import (
+    CLASSIFICATION_TIMEOUT,
     EmailClassificationAgent,
 )
+from backend.app.services.llm.ollama_client import OllamaClient
 
 
 class TestEmailClassificationAgent:
@@ -318,3 +320,18 @@ class TestEmailClassificationAgent:
         assert call_kwargs["parsed_json"] == parsed_data
         assert call_kwargs["confidence"] == 0.9
         assert call_kwargs["execution_time_ms"] is not None
+
+    def test_default_client_uses_short_timeout(self) -> None:
+        """Default OllamaClient should use classification timeout (15s)."""
+        with patch(
+            "backend.app.agents.email_classification_agent.OllamaClient"
+        ) as mock_cls:
+            mock_cls.return_value = MagicMock()
+            EmailClassificationAgent()
+            mock_cls.assert_called_once_with(timeout=CLASSIFICATION_TIMEOUT)
+
+    def test_custom_client_preserves_timeout(self) -> None:
+        """When a custom client is passed, its timeout is not overridden."""
+        custom_client = MagicMock(spec=OllamaClient)
+        agent = EmailClassificationAgent(ollama_client=custom_client)
+        assert agent._client is custom_client

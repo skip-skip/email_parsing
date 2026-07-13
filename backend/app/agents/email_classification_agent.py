@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -14,6 +15,8 @@ from backend.app.services.database.repositories.ai_log_repository import AILogRe
 from backend.app.services.llm.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
+
+CLASSIFICATION_TIMEOUT = 15
 
 
 @dataclass
@@ -35,7 +38,7 @@ class EmailClassificationAgent:
     """
 
     def __init__(self, ollama_client: OllamaClient | None = None) -> None:
-        self._client = ollama_client or OllamaClient()
+        self._client = ollama_client or OllamaClient(timeout=CLASSIFICATION_TIMEOUT)
 
     async def classify(
         self,
@@ -64,7 +67,8 @@ class EmailClassificationAgent:
 
         start_time = time.monotonic()
         try:
-            raw_response = self._client.generate(
+            raw_response = await asyncio.to_thread(
+                self._client.generate,
                 prompt=user_prompt,
                 system_prompt=EMAIL_CLASSIFICATION_SYSTEM,
             )
