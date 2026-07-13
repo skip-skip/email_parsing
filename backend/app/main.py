@@ -6,6 +6,7 @@ handlers, and the application lifespan (startup/shutdown).
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from contextlib import asynccontextmanager
 import loguru
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
@@ -72,6 +74,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(MetricsMiddleware)
