@@ -8,11 +8,9 @@ from pydantic import BaseModel
 
 from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.services.cache import query_cache
-from backend.app.services.queues.missing_info_queue import MissingInfoQueue
+from backend.app.services.queues.missing_info_queue import get_missing_info_queue
 
 router = APIRouter(prefix="/api/queues", tags=["queues"])
-
-_queue = MissingInfoQueue()
 
 
 class DraftEmailRequest(BaseModel):
@@ -67,14 +65,16 @@ def _queue_item_to_response(item: Any) -> QueueItemResponse:
 
 
 @router.get("/missing-info", response_model=list[QueueItemResponse])
-async def get_missing_info_queue() -> list[QueueItemResponse]:
-    items = await _queue.get_queue()
+async def get_missing_info_queue_endpoint() -> list[QueueItemResponse]:
+    queue = get_missing_info_queue()
+    items = await queue.get_queue()
     return [_queue_item_to_response(item) for item in items]
 
 
 @router.get("/missing-info/{ticket_id}", response_model=QueueItemResponse)
 async def get_missing_info_item(ticket_id: str) -> QueueItemResponse:
-    item = await _queue.get_item(ticket_id)
+    queue = get_missing_info_queue()
+    item = await queue.get_item(ticket_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
     return _queue_item_to_response(item)
@@ -85,6 +85,7 @@ async def approve_missing_info(
     ticket_id: str,
     request: ApproveRequest | None = None,
 ) -> QueueItemResponse:
+    queue = get_missing_info_queue()
     edits = None
     if request and request.edits:
         edits = DraftEmail(
@@ -95,7 +96,7 @@ async def approve_missing_info(
             ticket_id=uuid.UUID(ticket_id),
         )
 
-    item = await _queue.approve_item(ticket_id, edits=edits)
+    item = await queue.approve_item(ticket_id, edits=edits)
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
     if item.status != "APPROVED":
@@ -110,8 +111,9 @@ async def reject_missing_info(
     ticket_id: str,
     request: RejectRequest | None = None,
 ) -> QueueItemResponse:
+    queue = get_missing_info_queue()
     reason = request.reason if request else None
-    item = await _queue.reject_item(ticket_id, reason=reason)
+    item = await queue.reject_item(ticket_id, reason=reason)
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
     if item.status != "REJECTED":
@@ -126,6 +128,7 @@ async def update_missing_info_draft(
     ticket_id: str,
     request: DraftEmailRequest,
 ) -> QueueItemResponse:
+    queue = get_missing_info_queue()
     new_draft = DraftEmail(
         to=request.to,
         subject=request.subject,
@@ -133,7 +136,7 @@ async def update_missing_info_draft(
         missing_fields=request.missing_fields,
         ticket_id=uuid.UUID(ticket_id),
     )
-    item = await _queue.update_draft(ticket_id, new_draft)
+    item = await queue.update_draft(ticket_id, new_draft)
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
 

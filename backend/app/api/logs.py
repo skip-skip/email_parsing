@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any
 
@@ -77,7 +78,8 @@ async def list_app_logs(
     date_from: datetime | None = Query(None, description="Start of date range"),
     date_to: datetime | None = Query(None, description="End of date range"),
 ) -> PaginatedLogResponse:
-    entries = read_log_entries(
+    entries = await asyncio.to_thread(
+        read_log_entries,
         log_file=APP_LOG_FILE,
         level=level,
         limit=limit,
@@ -87,7 +89,8 @@ async def list_app_logs(
         date_from=date_from,
         date_to=date_to,
     )
-    total = count_log_entries(
+    total = await asyncio.to_thread(
+        count_log_entries,
         log_file=APP_LOG_FILE,
         level=level,
         search=search,
@@ -113,7 +116,8 @@ async def list_request_logs(
     date_from: datetime | None = Query(None, description="Start of date range"),
     date_to: datetime | None = Query(None, description="End of date range"),
 ) -> PaginatedLogResponse:
-    entries = read_log_entries(
+    entries = await asyncio.to_thread(
+        read_log_entries,
         log_file=REQUEST_LOG_FILE,
         level=level,
         limit=limit,
@@ -123,7 +127,8 @@ async def list_request_logs(
         date_from=date_from,
         date_to=date_to,
     )
-    total = count_log_entries(
+    total = await asyncio.to_thread(
+        count_log_entries,
         log_file=REQUEST_LOG_FILE,
         level=level,
         search=search,
@@ -141,8 +146,8 @@ async def list_request_logs(
 
 @router.get("/stats", response_model=LogStatsResponse)
 async def get_log_stats() -> LogStatsResponse:
-    app_counts = _count_by_level(APP_LOG_FILE)
-    request_counts = _count_by_level(REQUEST_LOG_FILE)
+    app_counts = await asyncio.to_thread(_count_by_level, APP_LOG_FILE)
+    request_counts = await asyncio.to_thread(_count_by_level, REQUEST_LOG_FILE)
 
     merged: dict[str, int] = {}
     for level_name, count in app_counts.items():

@@ -9,6 +9,16 @@ from backend.app.services.queues.queue_item import QueueItem
 
 logger = logging.getLogger(__name__)
 
+_missing_info_queue: MissingInfoQueue | None = None
+
+
+def get_missing_info_queue() -> MissingInfoQueue:
+    """Return the shared MissingInfoQueue singleton."""
+    global _missing_info_queue
+    if _missing_info_queue is None:
+        _missing_info_queue = MissingInfoQueue()
+    return _missing_info_queue
+
 
 class MissingInfoQueue:
     def __init__(self) -> None:

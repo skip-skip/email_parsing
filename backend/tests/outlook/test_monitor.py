@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.app.services.outlook.base import EmailProvider
@@ -32,7 +33,7 @@ class TestOutlookMonitor:
         mock_provider = MockEmailProvider()
         monitor = OutlookMonitor(mock_provider)
         monitor._poll_async = AsyncMock()
-        monitor._poll()
+        asyncio.run(monitor._poll_async())
         monitor._poll_async.assert_called_once()
 
     @patch("backend.app.services.outlook.monitor._is_outlook_enabled", return_value=False)
@@ -47,7 +48,11 @@ class TestOutlookMonitor:
     def test_start_stop(self, mock_interval: MagicMock, mock_enabled: MagicMock) -> None:
         mock_provider = MockEmailProvider()
         monitor = OutlookMonitor(mock_provider)
-        monitor.start()
-        assert monitor._scheduler.running
-        monitor.stop()
+
+        async def _run() -> None:
+            monitor.start()
+            assert monitor._scheduler.running
+            monitor.stop()
+
+        asyncio.run(_run())
         assert not monitor._scheduler.running

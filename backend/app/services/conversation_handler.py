@@ -9,7 +9,7 @@ from backend.app.services.database.repositories.email_repository import EmailRep
 from backend.app.services.database.repositories.ticket_repository import (
     TicketRepository,
 )
-from backend.app.services.queues.missing_info_queue import MissingInfoQueue
+from backend.app.services.queues.missing_info_queue import get_missing_info_queue
 from backend.app.services.validation.validator import TicketValidator
 from backend.app.workflows.state_manager import transition_ticket
 from backend.app.workflows.states import TicketStatus
@@ -32,11 +32,10 @@ class ConversationHandler:
         self,
         tracker: ConversationTracker | None = None,
         validator: TicketValidator | None = None,
-        queue: MissingInfoQueue | None = None,
     ) -> None:
         self._tracker = tracker or ConversationTracker()
         self._validator = validator or TicketValidator()
-        self._queue = queue or MissingInfoQueue()
+        self._queue = get_missing_info_queue()
 
     async def handle_reply(
         self,

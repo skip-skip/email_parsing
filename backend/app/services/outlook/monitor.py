@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 import loguru
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from backend.app.services.database import async_session_factory
@@ -34,13 +34,8 @@ class OutlookMonitor:
             email_provider: Provider used to retrieve messages from Outlook.
         """
         self._email_provider = email_provider
-        self._scheduler = BackgroundScheduler()
+        self._scheduler = AsyncIOScheduler()
         self._last_poll_count = 0
-
-    def _poll(self) -> None:
-        import asyncio
-
-        asyncio.run(self._poll_async())
 
     async def _poll_async(self) -> None:
         try:
@@ -86,7 +81,7 @@ class OutlookMonitor:
         poll_interval = _get_poll_interval()
         trigger = IntervalTrigger(seconds=poll_interval)
         self._scheduler.add_job(
-            self._poll,
+            self._poll_async,
             trigger,
             id="outlook_poll",
             max_instances=1,

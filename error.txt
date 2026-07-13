@@ -1,0 +1,168 @@
+INFO  [alembic.runtime.migration] Running upgrade 0392e1085f80 -> 43b9e1ef282c,
+add ticket model
+Traceback (most recent call last):
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 183, in execute
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 343, in _handle_exception
+    raise error
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 165, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlite3.OperationalError: table tickets already exists
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\__main__.py", line 4, in <module>
+    main(prog="alembic")
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\config.py", line 1047, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\config.py", line 1037, in main
+    self.run_cmd(cfg, options)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\config.py", line 971, in run_cmd
+    fn(
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\command.py", line 490, in upgrade
+    script.run_env()
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\script\base.py", line 556, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\util\pyfiles.py", line 116, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\util\pyfiles.py", line 136, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\schase\OneDrive - haleyaldrich.com\Documents\git-projects\email_parsing\alembic\env.py", line 69, in <module>
+    run_migrations_online()
+  File "C:\Users\schase\OneDrive - haleyaldrich.com\Documents\git-projects\email_parsing\alembic\env.py", line 63, in run_migrations_online
+    asyncio.run(run_async_migrations())
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\schase\OneDrive - haleyaldrich.com\Documents\git-projects\email_parsing\alembic\env.py", line 57, in run_async_migrations
+    await connection.run_sync(do_run_migrations)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\ext\asyncio\engine.py", line 888, in run_sync
+    return await greenlet_spawn(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 203, in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\OneDrive - haleyaldrich.com\Documents\git-projects\email_parsing\alembic\env.py", line 46, in do_run_migrations
+    context.run_migrations()
+  File "<string>", line 8, in run_migrations
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\runtime\environment.py", line 969, in run_migrations
+    self.get_context().run_migrations(**kw)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\runtime\migration.py", line 626, in run_migrations
+    step.migration_fn(**kw)
+  File "C:\Users\schase\OneDrive - haleyaldrich.com\Documents\git-projects\email_parsing\alembic\versions\43b9e1ef282c_add_ticket_model.py", line 24, in upgrade
+    op.create_table('tickets',
+  File "<string>", line 8, in create_table
+  File "<string>", line 3, in create_table
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\operations\ops.py", line 1331, in create_table
+    return operations.invoke(op)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\operations\base.py", line 452, in invoke
+    return fn(self, operation)
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\operations\toimpl.py", line 140, in create_table
+    operations.impl.create_table(table, **kw)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\ddl\impl.py", line 442, in create_table
+    self._exec(schema.CreateTable(table, **kw))
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\alembic\ddl\impl.py", line 256, in _exec
+    return conn.execute(construct, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 1421, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\sql\ddl.py", line 188, in _execute_on_connection
+    return connection._execute_ddl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 1532, in _execute_ddl
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 2365, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 183, in execute
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 343, in _handle_exception
+    raise error
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 165, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\schase\AppData\Local\anaconda3\envs\ai-task-manager\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+             ^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) table tickets already exists
+[SQL:
+CREATE TABLE tickets (
+        ticket_id CHAR(32) NOT NULL,
+        status VARCHAR NOT NULL,
+        client VARCHAR,
+        contact VARCHAR,
+        project_number VARCHAR,
+        task_description TEXT,
+        deadline DATETIME,
+        budget_hours FLOAT,
+        estimated_hours FLOAT,
+        priority INTEGER NOT NULL,
+        calendar_event_id VARCHAR,
+        conversation_id VARCHAR,
+        created_at DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
+        updated_at DATETIME,
+        PRIMARY KEY (ticket_id)
+)
+
+]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+make: *** [Makefile:81: migrate] Error 1
