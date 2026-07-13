@@ -11,7 +11,7 @@ Not Started
 |------|-------|--------|-------------|
 | 11.1 | Create Email Classification Prompt | Complete | None |
 | 11.2 | Build Email Classification Agent | Complete | 11.1, 4.1 |
-| 11.3 | Update WorkflowState Schema | Not Started | None |
+| 11.3 | Update WorkflowState Schema | Complete | None |
 | 11.4 | Build Email Processor Service (Bridge) | Not Started | 11.2, 11.3, 4.3, 2.6 |
 | 11.5 | Wire Monitor to Email Processor | Not Started | 11.4 |
 | 11.6 | Write Integration Tests | Not Started | 11.1–11.5 |

@@ -9,6 +9,9 @@ class WorkflowState(TypedDict):
     validation_result: dict[str, Any] | None
     missing_fields: list[str]
     error: str | None
+    sender: str
+    subject: str
+    body: str
 
 
 class TicketStatus(StrEnum):

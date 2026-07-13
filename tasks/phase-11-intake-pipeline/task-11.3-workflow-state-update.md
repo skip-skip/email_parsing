@@ -4,7 +4,7 @@
 Add `sender`, `subject`, and `body` fields to the `WorkflowState` TypedDict so the workflow graph receives email metadata explicitly.
 
 ## Status
-Not Started
+Complete
 
 ## Subtasks
 - Update `backend/app/workflows/states.py`:
