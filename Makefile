@@ -1,5 +1,5 @@
 .PHONY: help all setup env install config migrate model check-python check-node \
-       dev dev-backend dev-frontend \
+       dev dev-backend dev-frontend stop \
        lint lint-python lint-frontend \
        test test-python test-coverage \
        db-migrate db-seed db-verify db-reset
@@ -25,6 +25,7 @@ help: ## Show this help
 	@echo  Development:
 	@echo    make dev           Run backend with auto-reload
 	@echo    make dev-frontend  Run frontend dev server
+	@echo    make stop          Stop all dev servers
 	@echo.
 	@echo  Quality:
 	@echo    make lint          Lint + type-check all code
@@ -105,6 +106,9 @@ dev-backend: check-python ## Run backend with auto-reload
 
 dev-frontend: check-node ## Run frontend dev server
 	cd frontend && npm run dev
+
+stop: ## Stop all dev servers (backend + frontend)
+	@python -m backend.app.stop_dev
 
 # ──────────────────────────────────────────────
 #  Linting
