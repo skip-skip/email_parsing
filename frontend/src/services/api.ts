@@ -228,7 +228,7 @@ export const api = {
       client?: string
       sort_by?: string
       sort_dir?: string
-    }) => apiClient.get<ActiveTicket[]>("/api/tickets/active", { params }),
+    }) => apiClient.get<PaginatedResponse<ActiveTicket>>("/api/tickets/active", { params }),
 
     get: (ticketId: string) =>
       apiClient.get<ActiveTicket>(`/api/tickets/${ticketId}`),

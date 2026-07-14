@@ -72,3 +72,11 @@ class TicketRepository:
         if ticket is not None:
             await self._session.delete(ticket)
             await self._session.flush()
+
+    async def update_status(self, ticket_id: uuid.UUID, status: str) -> Ticket | None:
+        ticket = await self.get_by_id(ticket_id)
+        if ticket is None:
+            return None
+        ticket.status = status
+        await self._session.flush()
+        return ticket

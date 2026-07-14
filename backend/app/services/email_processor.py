@@ -164,6 +164,8 @@ class EmailProcessor:
             workflow_status = await self._invoke_workflow(message, ticket_id)
             result.workflow_status = workflow_status
 
+            await self._persist_ticket_status(ticket_id, workflow_status)
+
             logger.info(
                 "Processed task email %s -> ticket %s (workflow: %s)",
                 message.entry_id,
@@ -241,3 +243,22 @@ class EmailProcessor:
         wf = compile_workflow()
         final_state = await asyncio.to_thread(wf.invoke, initial_state)
         return final_state.get("status", "UNKNOWN")
+
+    async def _persist_ticket_status(
+        self, ticket_id: uuid.UUID, status: str
+    ) -> None:
+        """Persist the workflow-computed status to the ticket in the database.
+
+        Args:
+            ticket_id: The UUID of the ticket to update.
+            status: The new status string from the workflow.
+        """
+        try:
+            async with async_session_factory() as session:
+                ticket_repo = TicketRepository(session)
+                await ticket_repo.update_status(ticket_id, status)
+                await session.commit()
+        except Exception:
+            logger.exception(
+                "Failed to persist status %s for ticket %s", status, ticket_id
+            )

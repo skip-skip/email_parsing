@@ -18,6 +18,12 @@ interface TaskRowProps {
 
 function statusBadge(status: string): { label: string; className: string } {
   switch (status) {
+    case "NEW":
+      return {
+        label: "New",
+        className:
+          "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-950 dark:border-gray-800",
+      }
     case "ACCEPTED":
       return {
         label: "Accepted",

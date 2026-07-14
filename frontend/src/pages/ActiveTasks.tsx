@@ -20,6 +20,7 @@ import {
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Active" },
+  { value: "NEW", label: "New" },
   { value: "ACCEPTED", label: "Accepted" },
   { value: "CALENDAR_CREATED", label: "Scheduled" },
   { value: "IN_PROGRESS", label: "In Progress" },
@@ -46,7 +47,7 @@ export function ActiveTasks() {
   const effectiveSortField = sortField || "deadline"
 
   const {
-    data: tickets,
+    data: ticketData,
     isLoading,
     error,
     refetch,
@@ -64,6 +65,8 @@ export function ActiveTasks() {
     },
     refetchInterval: 30_000,
   })
+
+  const tickets = ticketData?.items ?? []
 
   useEffect(() => {
     if (dataUpdatedAt) {
@@ -124,7 +127,7 @@ export function ActiveTasks() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Active Tasks</h1>
         <div className="flex items-center gap-3">
-          {tickets && tickets.length > 0 && (
+          {tickets.length > 0 && (
             <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
               {tickets.length} {tickets.length === 1 ? "task" : "tasks"}
             </span>
@@ -202,7 +205,7 @@ export function ActiveTasks() {
         </div>
       </div>
 
-      {tickets && tickets.length === 0 && (
+      {tickets.length === 0 && (
         <EmptyState
           icon={ListChecks}
           title="No active tasks"
@@ -210,7 +213,7 @@ export function ActiveTasks() {
         />
       )}
 
-      {tickets && tickets.length > 0 && (
+      {tickets.length > 0 && (
         <div className="space-y-3">
           {tickets.map((ticket) => (
             <TaskRow
