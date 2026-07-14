@@ -12,6 +12,7 @@ from backend.app.models.calendar_event import CalendarEvent
 from backend.app.models.ticket import Ticket
 from backend.app.services.database import get_db
 from backend.app.services.etag import compute_etag
+from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
 from backend.app.workflows.state_manager import transition_ticket
 from backend.app.workflows.states import TicketStatus
 
@@ -257,6 +258,23 @@ async def close_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
 
     await db.refresh(ticket)
+
+    if ticket.conversation_id:
+        try:
+            provider = OutlookComEmailProvider()
+            body = (
+                f"Hello,\n\n"
+                f"Your task has been completed:\n\n"
+                f"Task: {ticket.task_description or 'Untitled task'}\n"
+                f"Project: {ticket.project_number or 'N/A'}\n\n"
+                f"Thank you for your patience."
+            )
+            await provider.send_reply_all(
+                conversation_id=ticket.conversation_id,
+                body=body,
+            )
+        except Exception:
+            pass
 
     events_result = await db.execute(
         select(CalendarEvent).where(CalendarEvent.ticket_id == ticket_id)
