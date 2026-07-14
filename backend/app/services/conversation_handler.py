@@ -96,6 +96,18 @@ class ConversationHandler:
 
             validation = self._validator.validate(ticket_data)
 
+            for field in merge_result.updated_fields:
+                if field in ticket_data and field != "deadline":
+                    setattr(ticket, field, ticket_data[field])
+                elif field == "deadline" and ticket_data.get("deadline") is not None:
+                    from datetime import datetime
+
+                    try:
+                        ticket.deadline = datetime.fromisoformat(ticket_data["deadline"])
+                    except (ValueError, TypeError):
+                        pass
+            await session.commit()
+
             if validation.is_complete:
                 await transition_ticket(
                     ticket.ticket_id,
