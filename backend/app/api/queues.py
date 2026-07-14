@@ -103,7 +103,7 @@ async def approve_missing_info(
     )
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
-    if item.status not in ("APPROVED", "AWAITING_REPLY"):
+    if item.status in ("REJECTED",):
         raise HTTPException(status_code=409, detail="Item already processed")
 
     query_cache.clear()
