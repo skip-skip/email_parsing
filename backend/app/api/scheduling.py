@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from backend.app.agents.calendar_planning_agent import ScheduleBlock, ScheduleSuggestion
 from backend.app.services.cache import query_cache
+from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
 from backend.app.services.queues.scheduling_queue import get_scheduling_queue
 
 router = APIRouter(prefix="/api/scheduling", tags=["scheduling"])
@@ -120,7 +121,9 @@ async def approve_schedule(
             for b in request.selected_blocks
         ]
 
-    item = await queue.approve_schedule(ticket_id, selected_blocks=selected_blocks)
+    item = await queue.approve_schedule(
+        ticket_id, selected_blocks=selected_blocks, email_provider=OutlookComEmailProvider()
+    )
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
     if item.status != "APPROVED":
@@ -137,7 +140,9 @@ async def decline_schedule(
 ) -> SchedulingQueueItemResponse:
     queue = get_scheduling_queue()
     reason = request.reason if request else None
-    item = await queue.decline_schedule(ticket_id, reason=reason)
+    item = await queue.decline_schedule(
+        ticket_id, reason=reason, email_provider=OutlookComEmailProvider()
+    )
     if item is None:
         raise HTTPException(status_code=404, detail="Scheduling item not found")
     if item.status != "DECLINED":

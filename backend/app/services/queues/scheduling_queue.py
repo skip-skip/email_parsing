@@ -9,7 +9,11 @@ from sqlalchemy import select
 from backend.app.agents.calendar_planning_agent import ScheduleBlock, ScheduleSuggestion
 from backend.app.models.scheduling_queue_record import SchedulingQueueRecord
 from backend.app.services.database import async_session_factory
+from backend.app.services.database.repositories.ticket_repository import TicketRepository
+from backend.app.services.outlook.base import EmailProvider
 from backend.app.services.queues.scheduling_queue_item import SchedulingQueueItem
+from backend.app.workflows.state_manager import transition_ticket
+from backend.app.workflows.states import TicketStatus
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +130,7 @@ class SchedulingQueue:
         self,
         ticket_id: str,
         selected_blocks: list[ScheduleBlock] | None = None,
+        email_provider: EmailProvider | None = None,
     ) -> SchedulingQueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
         async with async_session_factory() as session:
@@ -148,6 +153,37 @@ class SchedulingQueue:
             record.status = "APPROVED"
             await session.commit()
             await session.refresh(record)
+
+            try:
+                await transition_ticket(ticket_uuid, TicketStatus.IN_PROGRESS, strict_mode=False)
+            except ValueError:
+                logger.warning("Ticket %s not found for status transition", ticket_id)
+
+            if email_provider is not None:
+                ticket_repo = TicketRepository(session)
+                ticket = await ticket_repo.get_by_id(ticket_uuid)
+                if ticket is not None and ticket.conversation_id:
+                    try:
+                        suggestion = _json_to_suggestion(record.suggestion_json)
+                        blocks_text = "\n".join(
+                            f"  - {b.start_time.strftime('%Y-%m-%d %H:%M')} to {b.end_time.strftime('%Y-%m-%d %H:%M')} ({b.hours}h): {b.description}"
+                            for b in suggestion.blocks
+                        )
+                        body = (
+                            f"Hello,\n\n"
+                            f"Your task has been scheduled:\n\n"
+                            f"{blocks_text}\n\n"
+                            f"Total hours: {suggestion.total_hours}\n\n"
+                            f"Thank you."
+                        )
+                        await email_provider.send_reply_all(
+                            conversation_id=ticket.conversation_id,
+                            body=body,
+                        )
+                        logger.info("Sent schedule acceptance email for ticket %s", ticket_id)
+                    except Exception:
+                        logger.exception("Failed to send schedule email for ticket %s", ticket_id)
+
             logger.info("Approved schedule for ticket %s", ticket_id)
             return _record_to_item(record)
 
@@ -155,6 +191,7 @@ class SchedulingQueue:
         self,
         ticket_id: str,
         reason: str | None = None,
+        email_provider: EmailProvider | None = None,
     ) -> SchedulingQueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
         async with async_session_factory() as session:
@@ -171,6 +208,31 @@ class SchedulingQueue:
             record.status = "DECLINED"
             await session.commit()
             await session.refresh(record)
+
+            try:
+                await transition_ticket(ticket_uuid, TicketStatus.WAITING_FOR_INFORMATION, strict_mode=False)
+            except ValueError:
+                logger.warning("Ticket %s not found for status transition", ticket_id)
+
+            if email_provider is not None:
+                ticket_repo = TicketRepository(session)
+                ticket = await ticket_repo.get_by_id(ticket_uuid)
+                if ticket is not None and ticket.conversation_id:
+                    try:
+                        reason_text = f"\nReason: {reason}" if reason else ""
+                        body = (
+                            f"Hello,\n\n"
+                            f"Unfortunately, we were unable to schedule your task at this time.{reason_text}\n\n"
+                            f"Please let us know if you have any questions."
+                        )
+                        await email_provider.send_reply_all(
+                            conversation_id=ticket.conversation_id,
+                            body=body,
+                        )
+                        logger.info("Sent schedule decline email for ticket %s", ticket_id)
+                    except Exception:
+                        logger.exception("Failed to send decline email for ticket %s", ticket_id)
+
             logger.info(
                 "Declined schedule for ticket %s. Reason: %s",
                 ticket_id,
