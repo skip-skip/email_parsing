@@ -126,7 +126,7 @@ class TestSchedulingFlow:
     def test_plan_schedule_node_creates_blocks(self) -> None:
         state = _make_state(
             parsed_data={
-                "deadline": "2025-08-15T00:00:00",
+                "deadline": "2026-08-15T00:00:00",
                 "budget_hours": 40.0,
             }
         )

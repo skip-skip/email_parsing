@@ -120,6 +120,10 @@ class CalendarPlanningAgent:
         suggestion: ScheduleSuggestion,
     ) -> None:
         try:
+            ticket_uuid = uuid.UUID(ticket_id)
+        except (ValueError, AttributeError):
+            return
+        try:
             async with async_session_factory() as session:
                 log_repo = AILogRepository(session)
                 await log_repo.create(
@@ -127,7 +131,7 @@ class CalendarPlanningAgent:
                     prompt_version="v1.0.0",
                     prompt="schedule_suggestion",
                     response=f"blocks={len(suggestion.blocks)}, hours={suggestion.total_hours}",
-                    ticket_id=uuid.UUID(ticket_id),
+                    ticket_id=ticket_uuid,
                     parsed_json={
                         "total_hours": suggestion.total_hours,
                         "fits_deadline": suggestion.fits_deadline,
