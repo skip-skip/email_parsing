@@ -1,22 +1,5 @@
 import apiClient from "./api-client"
 
-export interface Ticket {
-  ticket_id: string
-  status: string
-  client: string | null
-  contact: string | null
-  project_number: string | null
-  task_description: string | null
-  deadline: string | null
-  budget_hours: number | null
-  estimated_hours: number | null
-  priority: number
-  calendar_event_id: string | null
-  conversation_id: string | null
-  created_at: string
-  updated_at: string | null
-}
-
 export interface DraftEmail {
   to: string
   subject: string
