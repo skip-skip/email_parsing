@@ -1,19 +1,23 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/services/api"
 import { MissingInfoCard } from "@/components/MissingInfoCard"
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertCircle, RefreshCw, Inbox } from "lucide-react"
+import { AlertCircle, RefreshCw, Inbox, Clock, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/EmptyState"
 import { useToast } from "@/components/Toast"
 import { useUIStore } from "@/stores/ui-store"
+import { cn } from "@/lib/utils"
+
+type TabId = "pending" | "awaiting"
 
 export function MissingInfoQueue() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const setLastUpdated = useUIStore((s) => s.setLastUpdated)
+  const [activeTab, setActiveTab] = useState<TabId>("pending")
 
   const {
     data: items,
@@ -87,6 +91,16 @@ export function MissingInfoQueue() {
     rejectMutation.isPending ||
     updateDraftMutation.isPending
 
+  const pendingItems = items?.filter((item) => item.status === "PENDING") ?? []
+  const awaitingItems = items?.filter((item) => item.status === "AWAITING_REPLY") ?? []
+
+  const tabs = [
+    { id: "pending" as TabId, label: "Pending Review", count: pendingItems.length, icon: Inbox },
+    { id: "awaiting" as TabId, label: "Awaiting Reply", count: awaitingItems.length, icon: Clock },
+  ]
+
+  const displayedItems = activeTab === "pending" ? pendingItems : awaitingItems
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -141,11 +155,6 @@ export function MissingInfoQueue() {
           Missing Information Queue
         </h1>
         <div className="flex items-center gap-3">
-          {items && items.length > 0 && (
-            <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-              {items.length} {items.length === 1 ? "item" : "items"}
-            </span>
-          )}
           <Button
             variant="ghost"
             size="sm"
@@ -157,17 +166,45 @@ export function MissingInfoQueue() {
         </div>
       </div>
 
-      {items && items.length === 0 && (
+      <div className="flex gap-1 rounded-lg border bg-muted p-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
+              activeTab === tab.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <tab.icon className="size-4" />
+            {tab.label}
+            {tab.count > 0 && (
+              <span className="rounded-full bg-muted-foreground/20 px-2 py-0.5 text-xs font-medium">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {displayedItems.length === 0 && (
         <EmptyState
-          icon={Inbox}
-          title="No items in queue"
-          description="Tasks with missing information will appear here for review. When the system detects incomplete task data, it will draft a follow-up email for your approval."
+          icon={activeTab === "pending" ? Inbox : Clock}
+          title={activeTab === "pending" ? "No pending items" : "No awaiting reply items"}
+          description={
+            activeTab === "pending"
+              ? "Tasks with missing information will appear here for review."
+              : "Items awaiting a reply from the sender will appear here."
+          }
         />
       )}
 
-      {items && items.length > 0 && (
+      {displayedItems.length > 0 && (
         <div className="space-y-4">
-          {items.map((item) => (
+          {displayedItems.map((item) => (
             <MissingInfoCard
               key={item.ticket_id}
               item={item}
