@@ -164,6 +164,82 @@ async def list_active_tickets(
     )
 
 
+CLOSED_STATUSES = ("COMPLETED", "DECLINED", "CANCELLED")
+
+
+@router.get("/closed", response_model=PaginatedTicketResponse)
+async def list_closed_tickets(
+    request: Request,
+    client: str | None = Query(
+        None, description="Filter by client name (case-insensitive partial match)"
+    ),
+    sort_by: str = Query(
+        "updated_at", description="Sort field: updated_at, created_at, client"
+    ),
+    sort_dir: str = Query("desc", description="Sort direction: asc or desc"),
+    offset: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(50, ge=1, le=200, description="Maximum records to return"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    query = select(Ticket).where(Ticket.status.in_(CLOSED_STATUSES))
+
+    if client:
+        query = query.where(Ticket.client.ilike(f"%{client}%"))
+
+    sort_column_map = {
+        "updated_at": Ticket.updated_at,
+        "created_at": Ticket.created_at,
+        "client": Ticket.client,
+    }
+    sort_col = sort_column_map.get(sort_by, Ticket.updated_at)
+    if sort_dir == "desc":
+        query = query.order_by(sort_col.desc().nullslast())
+    else:
+        query = query.order_by(sort_col.asc().nullsfirst())
+
+    count_query = select(func.count()).select_from(
+        select(Ticket).where(Ticket.status.in_(CLOSED_STATUSES)).subquery()
+    )
+    if client:
+        count_query = select(func.count()).select_from(
+            select(Ticket)
+            .where(Ticket.status.in_(CLOSED_STATUSES))
+            .where(Ticket.client.ilike(f"%{client}%"))
+            .subquery()
+        )
+    total_result = await db.execute(count_query)
+    total = total_result.scalar_one()
+
+    result = await db.execute(query.offset(offset).limit(limit))
+    tickets = list(result.scalars().all())
+
+    ticket_ids = [t.ticket_id for t in tickets]
+    events_by_ticket: dict[uuid.UUID, list[CalendarEvent]] = {}
+    if ticket_ids:
+        events_query = select(CalendarEvent).where(
+            CalendarEvent.ticket_id.in_(ticket_ids)
+        )
+        events_result = await db.execute(events_query)
+        all_events = list(events_result.scalars().all())
+        for event in all_events:
+            events_by_ticket.setdefault(event.ticket_id, []).append(event)
+
+    items = [
+        _ticket_to_response(t, events_by_ticket.get(t.ticket_id, [])) for t in tickets
+    ]
+    body = PaginatedTicketResponse(items=items, total=total, offset=offset, limit=limit)
+    etag = compute_etag(body.model_dump())
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+
+    return Response(
+        content=body.model_dump_json(),
+        media_type="application/json",
+        headers={"ETag": etag},
+    )
+
+
 @router.get("/{ticket_id}", response_model=TicketResponse)
 async def get_ticket(
     ticket_id: uuid.UUID,

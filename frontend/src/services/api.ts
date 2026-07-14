@@ -246,6 +246,17 @@ export const api = {
 
     update: (ticketId: string, data: UpdateTicketRequest) =>
       apiClient.patch<ActiveTicket>(`/api/tickets/${ticketId}`, data),
+
+    close: (ticketId: string) =>
+      apiClient.post<ActiveTicket>(`/api/tickets/${ticketId}/close`),
+
+    closed: (params?: {
+      client?: string
+      sort_by?: string
+      sort_dir?: string
+      offset?: number
+      limit?: number
+    }) => apiClient.get<PaginatedResponse<ActiveTicket>>("/api/tickets/closed", { params }),
   },
 
   aiLogs: {

@@ -27,6 +27,12 @@ interface UIState {
   activeTaskClientFilter: string
   setActiveTaskClientFilter: (client: string) => void
 
+  closedSortField: string | null
+  closedSortDirection: SortDirection
+  setClosedSortField: (field: string, direction?: SortDirection) => void
+  closedClientFilter: string
+  setClosedClientFilter: (client: string) => void
+
   selectedTicketIds: Set<string>
   toggleTicketSelection: (ticketId: string) => void
   selectAllTickets: (ticketIds: string[]) => void
@@ -82,6 +88,19 @@ export const useUIStore = create<UIState>()(
       setActiveTaskStatusFilter: (status) => set({ activeTaskStatusFilter: status }),
       activeTaskClientFilter: "",
       setActiveTaskClientFilter: (client) => set({ activeTaskClientFilter: client }),
+
+      closedSortField: null,
+      closedSortDirection: "desc" as SortDirection,
+      setClosedSortField: (field, direction = "desc") =>
+        set((state) => ({
+          closedSortField: field,
+          closedSortDirection:
+            state.closedSortField === field && state.closedSortDirection === "desc"
+              ? "asc"
+              : direction,
+        })),
+      closedClientFilter: "",
+      setClosedClientFilter: (client) => set({ closedClientFilter: client }),
 
       selectedTicketIds: new Set<string>(),
       toggleTicketSelection: (ticketId) =>

@@ -4,6 +4,7 @@ import {
   AlertCircle,
   CalendarClock,
   ListChecks,
+  CheckCircle2,
   ScrollText,
   Menu,
   PanelLeftClose,
@@ -20,7 +21,8 @@ const navItems = [
   { to: "/missing-info", label: "Missing Info Queue", icon: AlertCircle, key: "2" },
   { to: "/scheduling", label: "Scheduling Queue", icon: CalendarClock, key: "3" },
   { to: "/active-tasks", label: "Active Tasks", icon: ListChecks, key: "4" },
-  { to: "/ai-logs", label: "AI Logs", icon: ScrollText, key: "5" },
+  { to: "/closed-tasks", label: "Closed Tasks", icon: CheckCircle2, key: "5" },
+  { to: "/ai-logs", label: "AI Logs", icon: ScrollText, key: "6" },
 ]
 
 export function Layout() {
@@ -36,7 +38,8 @@ export function Layout() {
     "2": () => navigate("/missing-info"),
     "3": () => navigate("/scheduling"),
     "4": () => navigate("/active-tasks"),
-    "5": () => navigate("/ai-logs"),
+    "5": () => navigate("/closed-tasks"),
+    "6": () => navigate("/ai-logs"),
     d: () => useUIStore.getState().toggleTheme(),
   })
 

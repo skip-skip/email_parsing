@@ -8,6 +8,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage").then(m => ({ de
 const MissingInfoPage = lazy(() => import("@/pages/MissingInfoPage").then(m => ({ default: m.MissingInfoPage })))
 const SchedulingPage = lazy(() => import("@/pages/SchedulingPage").then(m => ({ default: m.SchedulingPage })))
 const ActiveTasksPage = lazy(() => import("@/pages/ActiveTasksPage").then(m => ({ default: m.ActiveTasksPage })))
+const ClosedTasksPage = lazy(() => import("@/pages/ClosedTasks").then(m => ({ default: m.ClosedTasks })))
 const TaskDetail = lazy(() => import("@/pages/TaskDetail").then(m => ({ default: m.TaskDetail })))
 const AiLogsPage = lazy(() => import("@/pages/AiLogsPage").then(m => ({ default: m.AiLogsPage })))
 
@@ -70,6 +71,14 @@ function App() {
                 element={
                   <ErrorBoundary fallbackTitle="Task Detail Error">
                     <TaskDetail />
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="closed-tasks"
+                element={
+                  <ErrorBoundary fallbackTitle="Closed Tasks Error">
+                    <ClosedTasksPage />
                   </ErrorBoundary>
                 }
               />
