@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import type { QueueItem } from "@/services/api"
 import {
   Card,
@@ -60,6 +61,7 @@ export function MissingInfoCard({
   const [approvalMode, setApprovalMode] = useState<"approve" | "reject" | null>(
     null,
   )
+  const navigate = useNavigate()
 
   const confidence = item.confidence_indicator
   const ticketIdShort = item.ticket_id.slice(0, 8)
@@ -91,7 +93,13 @@ export function MissingInfoCard({
                 ) : (
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
                 )}
-                Ticket {ticketIdShort}...
+                <button
+                  type="button"
+                  onClick={() => navigate(`/active-tasks/${item.ticket_id}`)}
+                  className="hover:underline"
+                >
+                  Ticket {ticketIdShort}...
+                </button>
               </CardTitle>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import type { SchedulingQueueItem, ScheduleBlock } from "@/services/api"
 import {
   Card,
@@ -54,6 +55,7 @@ export function ScheduleCard({
   const [approvalMode, setApprovalMode] = useState<
     "approve" | "decline" | "modify" | null
   >(null)
+  const navigate = useNavigate()
 
   const confidence = item.confidence_indicator
   const ticketIdShort = item.ticket_id.slice(0, 8)
@@ -82,7 +84,13 @@ export function ScheduleCard({
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
                 <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
-                Ticket {ticketIdShort}...
+                <button
+                  type="button"
+                  onClick={() => navigate(`/active-tasks/${item.ticket_id}`)}
+                  className="hover:underline"
+                >
+                  Ticket {ticketIdShort}...
+                </button>
               </CardTitle>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
