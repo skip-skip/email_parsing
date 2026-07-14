@@ -111,6 +111,17 @@ class OutlookComEmailProvider(EmailProvider):
         reply.Body = body
         reply.Send()
 
+    def _send_reply_all(self, conversation_id: str, body: str) -> None:
+        inbox = _get_inbox(self._namespace)
+        messages = inbox.Items
+        filter_str = f"[ConversationID] = '{conversation_id}'"
+        conversation = messages.Restrict(filter_str)
+        conversation.Sort("[ReceivedTime]", True)
+        original = conversation.items[0]
+        reply_all = original.ReplyAll()
+        reply_all.Body = body
+        reply_all.Send()
+
     def _get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
         try:
             message = self._namespace.GetItemFromID(entry_id)
@@ -136,6 +147,13 @@ class OutlookComEmailProvider(EmailProvider):
         def _send():
             self._connect_with_retry()
             self._send_reply(conversation_id, body)
+
+        await asyncio.to_thread(_send)
+
+    async def send_reply_all(self, conversation_id: str, body: str) -> None:
+        def _send():
+            self._connect_with_retry()
+            self._send_reply_all(conversation_id, body)
 
         await asyncio.to_thread(_send)
 

@@ -15,7 +15,7 @@ from backend.app.services.etag import compute_etag
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
-ACTIVE_STATUSES = ("NEW", "ACCEPTED", "CALENDAR_CREATED", "IN_PROGRESS", "WAITING_FOR_INFORMATION")
+ACTIVE_STATUSES = ("NEW", "ACCEPTED", "CALENDAR_CREATED", "IN_PROGRESS", "WAITING_FOR_INFORMATION", "AWAITING_REPLY")
 
 
 class CalendarEventResponse(BaseModel):

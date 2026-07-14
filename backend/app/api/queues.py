@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.services.cache import query_cache
 from backend.app.services.queues.missing_info_queue import get_missing_info_queue
+from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
 
 router = APIRouter(prefix="/api/queues", tags=["queues"])
 
@@ -96,10 +97,13 @@ async def approve_missing_info(
             ticket_id=uuid.UUID(ticket_id),
         )
 
-    item = await queue.approve_item(ticket_id, edits=edits)
+    email_provider = OutlookComEmailProvider()
+    item = await queue.approve_item(
+        ticket_id, edits=edits, email_provider=email_provider
+    )
     if item is None:
         raise HTTPException(status_code=404, detail="Queue item not found")
-    if item.status != "APPROVED":
+    if item.status not in ("APPROVED", "AWAITING_REPLY"):
         raise HTTPException(status_code=409, detail="Item already processed")
 
     query_cache.clear()

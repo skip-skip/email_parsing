@@ -9,7 +9,9 @@ from sqlalchemy import select
 from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.models.missing_info_queue_record import MissingInfoQueueRecord
 from backend.app.services.database import async_session_factory
+from backend.app.services.database.repositories.ticket_repository import TicketRepository
 from backend.app.services.queues.queue_item import QueueItem
+from backend.app.services.outlook.base import EmailProvider
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +109,7 @@ class MissingInfoQueue:
         self,
         ticket_id: str,
         edits: DraftEmail | None = None,
+        email_provider: EmailProvider | None = None,
     ) -> QueueItem | None:
         ticket_uuid = uuid.UUID(ticket_id)
         async with async_session_factory() as session:
@@ -130,6 +133,30 @@ class MissingInfoQueue:
                 }
 
             record.status = "APPROVED"
+
+            draft_data = record.draft_json
+            conversation_id = draft_data.get("ticket_id", "")
+            ticket_repo = TicketRepository(session)
+            ticket = await ticket_repo.get_by_id(ticket_uuid)
+            if ticket and ticket.conversation_id:
+                conversation_id = ticket.conversation_id
+
+            if email_provider is not None:
+                try:
+                    await email_provider.send_reply_all(
+                        conversation_id, draft_data["body"]
+                    )
+                    record.status = "AWAITING_REPLY"
+                    logger.info(
+                        "Sent missing info email for ticket %s via reply-all",
+                        ticket_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to send missing info email for ticket %s",
+                        ticket_id,
+                    )
+
             await session.commit()
             await session.refresh(record)
             logger.info("Approved queue item for ticket %s", ticket_id)

@@ -34,6 +34,11 @@ class EmailProvider(ABC):
         ...
 
     @abstractmethod
+    async def send_reply_all(self, conversation_id: str, body: str) -> None:
+        """Send a reply-all to an existing conversation thread."""
+        ...
+
+    @abstractmethod
     async def get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
         """Retrieve a single message by its Outlook EntryID."""
         ...

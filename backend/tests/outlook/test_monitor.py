@@ -21,6 +21,9 @@ class MockEmailProvider(EmailProvider):
     async def send_reply(self, conversation_id: str, body: str) -> None:
         pass
 
+    async def send_reply_all(self, conversation_id: str, body: str) -> None:
+        pass
+
     async def get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
         for m in self.messages:
             if m.entry_id == entry_id:

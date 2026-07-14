@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from unittest.mock import AsyncMock, MagicMock
 
 from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.services.queues.missing_info_queue import MissingInfoQueue
@@ -38,6 +39,41 @@ class TestMissingInfoQueue:
         draft = self._make_draft()
         asyncio.run(queue.add_to_queue("550e8400-e29b-41d4-a716-446655440000", draft, ["project_number"]))
         item = asyncio.run(queue.approve_item("550e8400-e29b-41d4-a716-446655440000"))
+        assert item is not None
+        assert item.status == "APPROVED"
+
+    def test_approve_item_sends_email_sets_awaiting_reply(self) -> None:
+        queue = MissingInfoQueue()
+        draft = self._make_draft()
+        asyncio.run(queue.add_to_queue("550e8400-e29b-41d4-a716-446655440000", draft, ["project_number"]))
+
+        mock_email_provider = MagicMock()
+        mock_email_provider.send_reply_all = AsyncMock()
+
+        item = asyncio.run(
+            queue.approve_item(
+                "550e8400-e29b-41d4-a716-446655440000",
+                email_provider=mock_email_provider,
+            )
+        )
+        assert item is not None
+        assert item.status == "AWAITING_REPLY"
+        mock_email_provider.send_reply_all.assert_awaited_once()
+
+    def test_approve_item_email_failure_stays_approved(self) -> None:
+        queue = MissingInfoQueue()
+        draft = self._make_draft()
+        asyncio.run(queue.add_to_queue("550e8400-e29b-41d4-a716-446655440000", draft, ["project_number"]))
+
+        mock_email_provider = MagicMock()
+        mock_email_provider.send_reply_all = AsyncMock(side_effect=Exception("Outlook down"))
+
+        item = asyncio.run(
+            queue.approve_item(
+                "550e8400-e29b-41d4-a716-446655440000",
+                email_provider=mock_email_provider,
+            )
+        )
         assert item is not None
         assert item.status == "APPROVED"
 
