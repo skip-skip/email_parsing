@@ -16,7 +16,6 @@ from backend.app.agents.email_classification_agent import (
     EmailClassificationAgent,
 )
 from backend.app.agents.email_draft_agent import DraftEmail, EmailDraftAgent
-from backend.app.services.conversation_handler import ConversationHandler
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import (
     EmailRepository,
@@ -115,11 +114,11 @@ class EmailProcessor:
         self,
         classification_agent: EmailClassificationAgent | None = None,
         circuit_breaker: CircuitBreaker | None = None,
-        conversation_handler: ConversationHandler | None = None,
+        conversation_handler: "ConversationHandler | None" = None,
     ) -> None:
         self._classifier = classification_agent or EmailClassificationAgent()
         self._circuit_breaker = circuit_breaker or CircuitBreaker()
-        self._conversation_handler = conversation_handler or ConversationHandler()
+        self._conversation_handler = conversation_handler
 
     async def process_new_email(self, message: EmailMessage) -> ProcessingResult:
         """Process a new email through the classification and workflow pipeline.
@@ -218,9 +217,13 @@ class EmailProcessor:
             return None
 
         try:
-            from backend.app.services.conversation_handler import ReplyResult
+            from backend.app.services.conversation_handler import (
+                ConversationHandler,
+                ReplyResult,
+            )
 
-            result = await self._conversation_handler.handle_reply(
+            handler = self._conversation_handler or ConversationHandler()
+            result = await handler.handle_reply(
                 conversation_id=message.conversation_id,
                 reply_email=message,
             )

@@ -86,7 +86,7 @@ class MissingInfoQueue:
         async with async_session_factory() as session:
             result = await session.execute(
                 select(MissingInfoQueueRecord).where(
-                    MissingInfoQueueRecord.status == "PENDING"
+                    MissingInfoQueueRecord.status.in_(["PENDING", "AWAITING_REPLY"])
                 )
             )
             records = result.scalars().all()
@@ -153,7 +153,8 @@ class MissingInfoQueue:
                     )
                 except Exception:
                     logger.exception(
-                        "Failed to send missing info email for ticket %s",
+                        "Failed to send missing info email for ticket %s, "
+                        "item remains in PENDING for retry",
                         ticket_id,
                     )
 

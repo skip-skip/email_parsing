@@ -49,6 +49,10 @@ class MockAttachments:
 class MockItems:
     items: list[MockMailItem] = field(default_factory=list)
 
+    @property
+    def Count(self) -> int:
+        return len(self.items)
+
     def Restrict(self, filter_str: str) -> MockItems:
         if "UnRead" in filter_str:
             filtered = [m for m in self.items if m.UnRead]

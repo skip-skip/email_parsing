@@ -106,6 +106,10 @@ class OutlookComEmailProvider(EmailProvider):
         filter_str = f"[ConversationID] = '{conversation_id}'"
         conversation = messages.Restrict(filter_str)
         conversation.Sort("[ReceivedTime]", True)
+        if conversation.Count == 0:
+            raise ValueError(
+                f"No emails found for conversation {conversation_id}"
+            )
         original = conversation.items[0]
         reply = original.Reply()
         reply.Body = body
@@ -117,6 +121,10 @@ class OutlookComEmailProvider(EmailProvider):
         filter_str = f"[ConversationID] = '{conversation_id}'"
         conversation = messages.Restrict(filter_str)
         conversation.Sort("[ReceivedTime]", True)
+        if conversation.Count == 0:
+            raise ValueError(
+                f"No emails found for conversation {conversation_id}"
+            )
         original = conversation.items[0]
         reply_all = original.ReplyAll()
         reply_all.Body = body
