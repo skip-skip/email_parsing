@@ -15,7 +15,7 @@ from backend.app.agents.email_classification_agent import (
     ClassificationResult,
     EmailClassificationAgent,
 )
-from backend.app.agents.email_draft_agent import DraftEmail
+from backend.app.agents.email_draft_agent import DraftEmail, EmailDraftAgent
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import (
     EmailRepository,
@@ -282,6 +282,9 @@ class EmailProcessor:
     ) -> None:
         """Create a missing info queue entry when the workflow detects missing fields.
 
+        Uses the EmailDraftAgent to generate an LLM-powered draft email.
+        Falls back to a template-based draft if the LLM fails.
+
         Args:
             ticket_id: The UUID of the ticket.
             message: The original email message.
@@ -292,17 +295,20 @@ class EmailProcessor:
             if not missing_fields:
                 return
 
-            draft = DraftEmail(
-                to=message.sender,
-                subject=f"Re: {message.subject or 'Your request'}",
-                body=(
-                    f"Hello,\n\n"
-                    f"We need additional information for your request:\n"
-                    f"- Missing: {', '.join(missing_fields)}\n\n"
-                    f"Please provide these details so we can proceed.\n"
-                ),
+            parsed_data = workflow_state.get("parsed_data") or {}
+            client = parsed_data.get("client") if isinstance(parsed_data, dict) else None
+            project_number = parsed_data.get("project_number") if isinstance(parsed_data, dict) else None
+            task_description = parsed_data.get("task_description") if isinstance(parsed_data, dict) else None
+
+            draft_agent = EmailDraftAgent()
+            draft = await draft_agent.draft(
+                ticket_id=str(ticket_id),
+                sender=message.sender,
+                subject=message.subject or "Your request",
+                client=client,
+                project_number=project_number,
+                task_description=task_description,
                 missing_fields=missing_fields,
-                ticket_id=ticket_id,
             )
 
             queue = get_missing_info_queue()
