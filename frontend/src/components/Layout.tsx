@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import {
   LayoutDashboard,
   AlertCircle,
@@ -15,6 +16,7 @@ import { useUIStore } from "@/stores/ui-store"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useEffect } from "react"
+import { api } from "@/services/api"
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "1" },
@@ -32,6 +34,32 @@ export function Layout() {
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const lastUpdated = useUIStore((s) => s.lastUpdated)
   const location = useLocation()
+
+  const { data: missingInfoData } = useQuery({
+    queryKey: ["missing-info-badge"],
+    queryFn: async () => {
+      const response = await api.missingInfo.list()
+      return response.data
+    },
+    refetchInterval: 30_000,
+  })
+
+  const { data: schedulingData } = useQuery({
+    queryKey: ["scheduling-badge"],
+    queryFn: async () => {
+      const response = await api.scheduling.list()
+      return response.data
+    },
+    refetchInterval: 30_000,
+  })
+
+  const missingInfoCount = missingInfoData?.filter((item) => item.status === "PENDING").length ?? 0
+  const schedulingCount = schedulingData?.length ?? 0
+
+  const badges: Record<string, number> = {
+    "/missing-info": missingInfoCount,
+    "/scheduling": schedulingCount,
+  }
 
   const { navigate } = useKeyboardShortcuts({
     "1": () => navigate("/"),
@@ -80,6 +108,11 @@ export function Layout() {
             <item.icon className="size-4 shrink-0" />
             {!sidebarCollapsed && (
               <span className="flex-1">{item.label}</span>
+            )}
+            {!sidebarCollapsed && badges[item.to] && badges[item.to] > 0 && (
+              <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-medium text-destructive-foreground">
+                {badges[item.to]}
+              </span>
             )}
             {!sidebarCollapsed && (
               <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground opacity-60 lg:inline-block">
