@@ -26,6 +26,8 @@ from backend.app.services.database.repositories.ticket_repository import (
 from backend.app.services.outlook.models import EmailMessage
 from backend.app.services.queues.missing_info_queue import get_missing_info_queue
 from backend.app.workflows.graph import compile_workflow
+from backend.app.workflows.states import TicketStatus
+from backend.app.workflows.state_manager import transition_ticket
 
 logger = logging.getLogger(__name__)
 
@@ -256,15 +258,17 @@ class EmailProcessor:
     ) -> None:
         """Persist the workflow-computed status to the ticket in the database.
 
+        Uses the state machine to validate the transition.  In non-strict
+        mode (the default), invalid transitions are logged but still applied
+        so that email processing is never blocked by state machine issues.
+
         Args:
             ticket_id: The UUID of the ticket to update.
             status: The new status string from the workflow.
         """
         try:
-            async with async_session_factory() as session:
-                ticket_repo = TicketRepository(session)
-                await ticket_repo.update_status(ticket_id, status)
-                await session.commit()
+            target = TicketStatus(status)
+            await transition_ticket(ticket_id, target, strict_mode=False)
         except Exception:
             logger.exception(
                 "Failed to persist status %s for ticket %s", status, ticket_id

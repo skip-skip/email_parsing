@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 async def transition_ticket(
     ticket_id: uuid.UUID,
     target_status: TicketStatus,
+    *,
+    strict_mode: bool = False,
 ) -> object:
     async with async_session_factory() as session:
         ticket_repo = TicketRepository(session)
@@ -29,7 +31,14 @@ async def transition_ticket(
         current_status = TicketStatus(ticket.status)
 
         if not can_transition(current_status, target_status):
-            raise InvalidTransitionError(current_status, target_status)
+            if strict_mode:
+                raise InvalidTransitionError(current_status, target_status)
+            logger.warning(
+                "Invalid transition %s -> %s for ticket %s (non-strict, allowing)",
+                current_status.value,
+                target_status.value,
+                ticket_id,
+            )
 
         previous_status = current_status.value
         ticket = await ticket_repo.update(

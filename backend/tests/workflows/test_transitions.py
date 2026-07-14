@@ -39,3 +39,16 @@ class TestTransitions:
             raise InvalidTransitionError(TicketStatus.NEW, TicketStatus.COMPLETED)
         assert "NEW" in str(exc_info.value)
         assert "COMPLETED" in str(exc_info.value)
+
+    def test_waiting_for_information_can_transition_to_ready(self) -> None:
+        assert can_transition(TicketStatus.WAITING_FOR_INFORMATION, TicketStatus.READY_FOR_SCHEDULING) is True
+
+    def test_pending_user_approval_can_transition_to_waiting(self) -> None:
+        assert can_transition(TicketStatus.PENDING_USER_APPROVAL, TicketStatus.WAITING_FOR_INFORMATION) is True
+
+    def test_full_missing_info_reply_flow(self) -> None:
+        """WAITING_FOR_INFORMATION → READY_FOR_SCHEDULING → PENDING_USER_APPROVAL → ACCEPTED → CALENDAR_CREATED"""
+        assert can_transition(TicketStatus.WAITING_FOR_INFORMATION, TicketStatus.READY_FOR_SCHEDULING) is True
+        assert can_transition(TicketStatus.READY_FOR_SCHEDULING, TicketStatus.PENDING_USER_APPROVAL) is True
+        assert can_transition(TicketStatus.PENDING_USER_APPROVAL, TicketStatus.ACCEPTED) is True
+        assert can_transition(TicketStatus.ACCEPTED, TicketStatus.CALENDAR_CREATED) is True
