@@ -101,5 +101,6 @@ class TicketValidator:
             except ValueError:
                 return False
         if isinstance(value, datetime):
-            return value < datetime.now()
+            now = datetime.now(tz=value.tzinfo) if value.tzinfo else datetime.now()
+            return value < now
         return False
