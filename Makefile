@@ -83,7 +83,7 @@ migrate: ## Run database migrations
 	@echo  Migrations complete.
 
 model: ## Pull default Ollama model (safe if already exists)
-	@where ollama >nul 2>&1 && (echo  Pulling ollama model qwen3:8b... && ollama pull qwen3:8b) || echo  Ollama not found — skipping. Install from https://ollama.com and run 'make model' later.
+	@where ollama >nul 2>&1 && (echo  Pulling ollama model gemma3:4b... && ollama pull gemma3:4b) || echo  Ollama not found — skipping. Install from https://ollama.com and run 'make model' later.
 
 # ──────────────────────────────────────────────
 #  Guard checks

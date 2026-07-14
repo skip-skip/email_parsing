@@ -16,7 +16,7 @@ from backend.app.services.llm.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 
-CLASSIFICATION_TIMEOUT = 15
+CLASSIFICATION_TIMEOUT = 60
 
 
 @dataclass
