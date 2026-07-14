@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from unittest.mock import MagicMock, patch
 
 from backend.app.services.outlook.com_email_provider import OutlookComEmailProvider
@@ -52,6 +53,41 @@ class TestOutlookComEmailProvider:
         provider = OutlookComEmailProvider()
         provider._namespace = mock_app._namespace
         provider._send_reply("conv-123", "Reply body")
+
+    @patch("backend.app.services.outlook.com_email_provider._get_outlook_application")
+    def test_send_reply_all(self, mock_get_app: MagicMock) -> None:
+        mock_app = MockOutlookApp()
+        mock_get_app.return_value = mock_app
+
+        msg1 = MockMailItem(ConversationID="conv-123", EntryID="e1")
+        msg2 = MockMailItem(ConversationID="conv-123", EntryID="e2")
+        mock_app._namespace._inbox.items.items = [msg1, msg2]
+
+        provider = OutlookComEmailProvider()
+        provider._namespace = mock_app._namespace
+        provider._send_reply_all("conv-123", "Reply all body")
+
+    @patch("backend.app.services.outlook.com_email_provider._get_outlook_application")
+    def test_send_reply_empty_conversation_raises(self, mock_get_app: MagicMock) -> None:
+        mock_app = MockOutlookApp()
+        mock_get_app.return_value = mock_app
+        mock_app._namespace._inbox.items.items = []
+
+        provider = OutlookComEmailProvider()
+        provider._namespace = mock_app._namespace
+        with pytest.raises(ValueError, match="No emails found"):
+            provider._send_reply("nonexistent-conv", "body")
+
+    @patch("backend.app.services.outlook.com_email_provider._get_outlook_application")
+    def test_send_reply_all_empty_conversation_raises(self, mock_get_app: MagicMock) -> None:
+        mock_app = MockOutlookApp()
+        mock_get_app.return_value = mock_app
+        mock_app._namespace._inbox.items.items = []
+
+        provider = OutlookComEmailProvider()
+        provider._namespace = mock_app._namespace
+        with pytest.raises(ValueError, match="No emails found"):
+            provider._send_reply_all("nonexistent-conv", "body")
 
     @patch("backend.app.services.outlook.com_email_provider._get_outlook_application")
     def test_get_message_by_entry_id(self, mock_get_app: MagicMock) -> None:

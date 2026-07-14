@@ -110,7 +110,7 @@ class OutlookComEmailProvider(EmailProvider):
             raise ValueError(
                 f"No emails found for conversation {conversation_id}"
             )
-        original = conversation.items[0]
+        original = conversation.Item(1)
         reply = original.Reply()
         reply.Body = body
         reply.Send()
@@ -125,7 +125,7 @@ class OutlookComEmailProvider(EmailProvider):
             raise ValueError(
                 f"No emails found for conversation {conversation_id}"
             )
-        original = conversation.items[0]
+        original = conversation.Item(1)
         reply_all = original.ReplyAll()
         reply_all.Body = body
         reply_all.Send()

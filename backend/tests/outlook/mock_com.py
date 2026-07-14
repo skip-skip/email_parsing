@@ -32,6 +32,14 @@ class MockMailItem:
             Body="",
         )
 
+    def ReplyAll(self) -> MockMailItem:
+        return MockMailItem(
+            ConversationID=self.ConversationID,
+            EntryID=f"{self.EntryID}-replyall",
+            Subject=f"RE: {self.Subject}",
+            Body="",
+        )
+
     def Send(self) -> None:
         pass
 
@@ -52,6 +60,9 @@ class MockItems:
     @property
     def Count(self) -> int:
         return len(self.items)
+
+    def Item(self, index: int) -> MockMailItem:
+        return self.items[index - 1]
 
     def Restrict(self, filter_str: str) -> MockItems:
         if "UnRead" in filter_str:

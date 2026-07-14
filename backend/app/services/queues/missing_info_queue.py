@@ -152,6 +152,7 @@ class MissingInfoQueue:
                         ticket_id,
                     )
                 except Exception:
+                    record.status = "PENDING"
                     logger.exception(
                         "Failed to send missing info email for ticket %s, "
                         "item remains in PENDING for retry",

@@ -60,7 +60,7 @@ class TestMissingInfoQueue:
         assert item.status == "AWAITING_REPLY"
         mock_email_provider.send_reply_all.assert_awaited_once()
 
-    def test_approve_item_email_failure_stays_approved(self) -> None:
+    def test_approve_item_email_failure_resets_to_pending(self) -> None:
         queue = MissingInfoQueue()
         draft = self._make_draft()
         asyncio.run(queue.add_to_queue("550e8400-e29b-41d4-a716-446655440000", draft, ["project_number"]))
@@ -75,7 +75,7 @@ class TestMissingInfoQueue:
             )
         )
         assert item is not None
-        assert item.status == "APPROVED"
+        assert item.status == "PENDING"
 
     def test_reject_item(self) -> None:
         queue = MissingInfoQueue()
