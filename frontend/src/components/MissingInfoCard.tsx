@@ -20,6 +20,8 @@ import {
   Mail,
   User,
   FileText,
+  Clock,
+  Send,
 } from "lucide-react"
 
 interface MissingInfoCardProps {
@@ -61,6 +63,7 @@ export function MissingInfoCard({
 
   const confidence = item.confidence_indicator
   const ticketIdShort = item.ticket_id.slice(0, 8)
+  const isAwaitingReply = item.status === "AWAITING_REPLY"
 
   function handleSaveDraft(draft: QueueItem["draft_email"]) {
     onUpdateDraft(item.ticket_id, draft)
@@ -83,7 +86,11 @@ export function MissingInfoCard({
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
-                <FileText className="size-4 shrink-0 text-muted-foreground" />
+                {isAwaitingReply ? (
+                  <Clock className="size-4 shrink-0 text-blue-500" />
+                ) : (
+                  <FileText className="size-4 shrink-0 text-muted-foreground" />
+                )}
                 Ticket {ticketIdShort}...
               </CardTitle>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -95,16 +102,24 @@ export function MissingInfoCard({
                 <span>{new Date(item.created_at).toLocaleDateString()}</span>
               </div>
             </div>
-            <div
-              className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                confidenceColor(confidence.level),
+            <div className="flex items-center gap-2">
+              {isAwaitingReply && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  <Send className="size-3" />
+                  Email Sent
+                </span>
               )}
-            >
-              {confidence.label}
-              <span className="ml-1 text-[10px] opacity-70">
-                ({Math.round(item.confidence * 100)}%)
-              </span>
+              <div
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                  confidenceColor(confidence.level),
+                )}
+              >
+                {confidence.label}
+                <span className="ml-1 text-[10px] opacity-70">
+                  ({Math.round(item.confidence * 100)}%)
+                </span>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -145,7 +160,7 @@ export function MissingInfoCard({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Draft Response
+                  {isAwaitingReply ? "Sent Email" : "Draft Response"}
                 </p>
                 <button
                   type="button"
@@ -177,9 +192,20 @@ export function MissingInfoCard({
               )}
             </div>
           )}
+
+          {/* Awaiting reply status message */}
+          {isAwaitingReply && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+              <p className="font-medium">Email sent — awaiting reply</p>
+              <p className="mt-1 text-xs opacity-80">
+                The missing information request has been sent. When the sender
+                replies, the system will automatically process their response.
+              </p>
+            </div>
+          )}
         </CardContent>
 
-        {!isEditing && (
+        {!isEditing && !isAwaitingReply && (
           <CardFooter className="gap-2">
             <Button
               variant="ghost"
