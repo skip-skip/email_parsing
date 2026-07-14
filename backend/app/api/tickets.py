@@ -12,6 +12,8 @@ from backend.app.models.calendar_event import CalendarEvent
 from backend.app.models.ticket import Ticket
 from backend.app.services.database import get_db
 from backend.app.services.etag import compute_etag
+from backend.app.workflows.state_manager import transition_ticket
+from backend.app.workflows.states import TicketStatus
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -229,6 +231,31 @@ async def update_ticket(
 
     ticket.updated_at = datetime.now(timezone.utc)
     await db.commit()
+    await db.refresh(ticket)
+
+    events_result = await db.execute(
+        select(CalendarEvent).where(CalendarEvent.ticket_id == ticket_id)
+    )
+    events = list(events_result.scalars().all())
+
+    return _ticket_to_response(ticket, events)
+
+
+@router.post("/{ticket_id}/close", response_model=TicketResponse)
+async def close_ticket(
+    ticket_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> TicketResponse:
+    result = await db.execute(select(Ticket).where(Ticket.ticket_id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    try:
+        await transition_ticket(ticket_id, TicketStatus.COMPLETED, strict_mode=True)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
     await db.refresh(ticket)
 
     events_result = await db.execute(
