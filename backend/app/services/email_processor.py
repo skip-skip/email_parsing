@@ -16,6 +16,7 @@ from backend.app.agents.email_classification_agent import (
     EmailClassificationAgent,
 )
 from backend.app.agents.email_draft_agent import DraftEmail, EmailDraftAgent
+from backend.app.services.conversation_handler import ConversationHandler
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import (
     EmailRepository,
@@ -114,12 +115,17 @@ class EmailProcessor:
         self,
         classification_agent: EmailClassificationAgent | None = None,
         circuit_breaker: CircuitBreaker | None = None,
+        conversation_handler: ConversationHandler | None = None,
     ) -> None:
         self._classifier = classification_agent or EmailClassificationAgent()
         self._circuit_breaker = circuit_breaker or CircuitBreaker()
+        self._conversation_handler = conversation_handler or ConversationHandler()
 
     async def process_new_email(self, message: EmailMessage) -> ProcessingResult:
         """Process a new email through the classification and workflow pipeline.
+
+        If the email is a reply to an existing ticket awaiting information,
+        it is routed to the ConversationHandler instead of being classified.
 
         Args:
             message: The incoming email message from Outlook.
@@ -130,6 +136,19 @@ class EmailProcessor:
         result = ProcessingResult(entry_id=message.entry_id)
 
         try:
+            reply_result = await self._try_handle_reply(message)
+            if reply_result is not None:
+                result.ticket_id = reply_result.ticket_id
+                result.is_task = True
+                result.workflow_status = reply_result.status
+                logger.info(
+                    "Handled reply for ticket %s (fields updated: %s, complete: %s)",
+                    reply_result.ticket_id,
+                    reply_result.updated_fields,
+                    reply_result.is_complete,
+                )
+                return result
+
             if self._circuit_breaker.is_open:
                 logger.warning(
                     "Circuit breaker open — skipping classification for %s",
@@ -189,6 +208,29 @@ class EmailProcessor:
             result.error = "Processing failed — see logs for details"
 
         return result
+
+    async def _try_handle_reply(self, message: EmailMessage) -> "ReplyResult | None":
+        """Check if this email is a reply to an existing ticket and route to ConversationHandler.
+
+        Returns ReplyResult if the email was handled as a reply, None otherwise.
+        """
+        if not message.conversation_id:
+            return None
+
+        try:
+            from backend.app.services.conversation_handler import ReplyResult
+
+            result = await self._conversation_handler.handle_reply(
+                conversation_id=message.conversation_id,
+                reply_email=message,
+            )
+            return result
+        except Exception:
+            logger.exception(
+                "Error handling reply for conversation %s",
+                message.conversation_id,
+            )
+            return None
 
     async def _create_ticket(self, message: EmailMessage) -> uuid.UUID:
         """Create a new ticket for a task email.

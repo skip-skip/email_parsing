@@ -53,9 +53,12 @@ class ConversationHandler:
                 )
                 return None
 
-            if ticket.status != TicketStatus.WAITING_FOR_INFORMATION.value:
+            if ticket.status not in (
+                TicketStatus.WAITING_FOR_INFORMATION.value,
+                TicketStatus.AWAITING_REPLY.value,
+            ):
                 logger.info(
-                    "Ticket %s is not in WAITING_FOR_INFORMATION (current: %s)",
+                    "Ticket %s is not awaiting info (current: %s)",
                     ticket.ticket_id,
                     ticket.status,
                 )
