@@ -21,6 +21,7 @@ import {
 const STATUS_OPTIONS = [
   { value: "", label: "All Active" },
   { value: "NEW", label: "New" },
+  { value: "WAITING_FOR_INFORMATION", label: "Waiting" },
   { value: "ACCEPTED", label: "Accepted" },
   { value: "CALENDAR_CREATED", label: "Scheduled" },
   { value: "IN_PROGRESS", label: "In Progress" },

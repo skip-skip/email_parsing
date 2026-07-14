@@ -15,6 +15,7 @@ from backend.app.agents.email_classification_agent import (
     ClassificationResult,
     EmailClassificationAgent,
 )
+from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import (
     EmailRepository,
@@ -23,6 +24,7 @@ from backend.app.services.database.repositories.ticket_repository import (
     TicketRepository,
 )
 from backend.app.services.outlook.models import EmailMessage
+from backend.app.services.queues.missing_info_queue import get_missing_info_queue
 from backend.app.workflows.graph import compile_workflow
 
 logger = logging.getLogger(__name__)
@@ -161,10 +163,16 @@ class EmailProcessor:
 
             await self._link_email_to_ticket(message.entry_id, ticket_id)
 
-            workflow_status = await self._invoke_workflow(message, ticket_id)
+            final_state = await self._invoke_workflow(message, ticket_id)
+            workflow_status = final_state.get("status", "UNKNOWN")
             result.workflow_status = workflow_status
 
             await self._persist_ticket_status(ticket_id, workflow_status)
+
+            if workflow_status == "WAITING_FOR_INFORMATION":
+                await self._create_missing_info_entry(
+                    ticket_id, message, final_state
+                )
 
             logger.info(
                 "Processed task email %s -> ticket %s (workflow: %s)",
@@ -218,7 +226,7 @@ class EmailProcessor:
 
     async def _invoke_workflow(
         self, message: EmailMessage, ticket_id: uuid.UUID
-    ) -> str:
+    ) -> dict[str, object]:
         """Invoke the LangGraph workflow for the new ticket.
 
         Args:
@@ -226,7 +234,7 @@ class EmailProcessor:
             ticket_id: The UUID of the ticket to process.
 
         Returns:
-            The final workflow status string.
+            The final workflow state dictionary.
         """
         initial_state = {
             "ticket_id": str(ticket_id),
@@ -241,8 +249,7 @@ class EmailProcessor:
         }
 
         wf = compile_workflow()
-        final_state = await asyncio.to_thread(wf.invoke, initial_state)
-        return final_state.get("status", "UNKNOWN")
+        return await asyncio.to_thread(wf.invoke, initial_state)
 
     async def _persist_ticket_status(
         self, ticket_id: uuid.UUID, status: str
@@ -261,4 +268,52 @@ class EmailProcessor:
         except Exception:
             logger.exception(
                 "Failed to persist status %s for ticket %s", status, ticket_id
+            )
+
+    async def _create_missing_info_entry(
+        self,
+        ticket_id: uuid.UUID,
+        message: EmailMessage,
+        workflow_state: dict[str, object],
+    ) -> None:
+        """Create a missing info queue entry when the workflow detects missing fields.
+
+        Args:
+            ticket_id: The UUID of the ticket.
+            message: The original email message.
+            workflow_state: The final workflow state dict.
+        """
+        try:
+            missing_fields = workflow_state.get("missing_fields", [])
+            if not missing_fields:
+                return
+
+            draft = DraftEmail(
+                to=message.sender,
+                subject=f"Re: {message.subject or 'Your request'}",
+                body=(
+                    f"Hello,\n\n"
+                    f"We need additional information for your request:\n"
+                    f"- Missing: {', '.join(missing_fields)}\n\n"
+                    f"Please provide these details so we can proceed.\n"
+                ),
+                missing_fields=missing_fields,
+                ticket_id=ticket_id,
+            )
+
+            queue = get_missing_info_queue()
+            await queue.add_to_queue(
+                ticket_id=str(ticket_id),
+                draft=draft,
+                missing_fields=missing_fields,
+                confidence=0.0,
+            )
+            logger.info(
+                "Added ticket %s to missing info queue (fields: %s)",
+                ticket_id,
+                missing_fields,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to create missing info entry for ticket %s", ticket_id
             )

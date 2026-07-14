@@ -24,6 +24,12 @@ function statusBadge(status: string): { label: string; className: string } {
         className:
           "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-950 dark:border-gray-800",
       }
+    case "WAITING_FOR_INFORMATION":
+      return {
+        label: "Waiting",
+        className:
+          "text-orange-600 bg-orange-50 border-orange-200 dark:text-orange-400 dark:bg-orange-950 dark:border-orange-800",
+      }
     case "ACCEPTED":
       return {
         label: "Accepted",
