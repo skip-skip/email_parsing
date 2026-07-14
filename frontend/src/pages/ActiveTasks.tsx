@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/services/api"
@@ -16,7 +16,11 @@ import {
   X,
   ArrowUpDown,
   ListChecks,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
+
+const PAGE_SIZE = 20
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Active" },
@@ -46,6 +50,7 @@ export function ActiveTasks() {
   const setLastUpdated = useUIStore((s) => s.setLastUpdated)
 
   const effectiveSortField = sortField || "deadline"
+  const [page, setPage] = useState(0)
 
   const {
     data: ticketData,
@@ -54,13 +59,15 @@ export function ActiveTasks() {
     refetch,
     dataUpdatedAt,
   } = useQuery({
-    queryKey: ["active-tasks", statusFilter, clientFilter, effectiveSortField, sortDirection],
+    queryKey: ["active-tasks", statusFilter, clientFilter, effectiveSortField, sortDirection, page],
     queryFn: async () => {
       const response = await api.tickets.listActive({
         status: statusFilter || undefined,
         client: clientFilter || undefined,
         sort_by: effectiveSortField,
         sort_dir: sortDirection,
+        offset: page * PAGE_SIZE,
+        limit: PAGE_SIZE,
       })
       return response.data
     },
@@ -68,12 +75,18 @@ export function ActiveTasks() {
   })
 
   const tickets = ticketData?.items ?? []
+  const total = ticketData?.total ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   useEffect(() => {
     if (dataUpdatedAt) {
       setLastUpdated("/active-tasks")
     }
   }, [dataUpdatedAt, setLastUpdated])
+
+  useEffect(() => {
+    setPage(0)
+  }, [statusFilter, clientFilter, effectiveSortField, sortDirection])
 
   function handleTaskClick(ticketId: string) {
     navigate(`/active-tasks/${ticketId}`)
@@ -128,9 +141,9 @@ export function ActiveTasks() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Active Tasks</h1>
         <div className="flex items-center gap-3">
-          {tickets.length > 0 && (
+          {total > 0 && (
             <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-              {tickets.length} {tickets.length === 1 ? "task" : "tasks"}
+              {total} {total === 1 ? "task" : "tasks"}
             </span>
           )}
           <Button
@@ -223,6 +236,37 @@ export function ActiveTasks() {
               onClick={handleTaskClick}
             />
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="size-3.5" />
+              Prev
+            </Button>
+            <span className="px-2 text-xs text-muted-foreground">
+              {page + 1} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
