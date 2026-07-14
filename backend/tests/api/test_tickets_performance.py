@@ -107,3 +107,83 @@ class TestTicketETag:
             headers={"if-none-match": etag},
         )
         assert response2.status_code == 304
+
+
+class TestTicketUpdate:
+    async def test_patch_updates_client(self, client: AsyncClient) -> None:
+        list_response = await client.get("/api/tickets/active")
+        first_ticket = list_response.json()["items"][0]
+        ticket_id = first_ticket["ticket_id"]
+
+        response = await client.patch(
+            f"/api/tickets/{ticket_id}",
+            json={"client": "Updated Client"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["client"] == "Updated Client"
+
+    async def test_patch_updates_multiple_fields(self, client: AsyncClient) -> None:
+        list_response = await client.get("/api/tickets/active")
+        first_ticket = list_response.json()["items"][0]
+        ticket_id = first_ticket["ticket_id"]
+
+        response = await client.patch(
+            f"/api/tickets/{ticket_id}",
+            json={
+                "client": "New Client",
+                "budget_hours": 10.5,
+                "priority": 5,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["client"] == "New Client"
+        assert data["budget_hours"] == 10.5
+        assert data["priority"] == 5
+
+    async def test_patch_sets_null_field(self, client: AsyncClient) -> None:
+        list_response = await client.get("/api/tickets/active")
+        first_ticket = list_response.json()["items"][0]
+        ticket_id = first_ticket["ticket_id"]
+
+        response = await client.patch(
+            f"/api/tickets/{ticket_id}",
+            json={"client": None},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["client"] is None
+
+    async def test_patch_not_found_returns_404(self, client: AsyncClient) -> None:
+        response = await client.patch(
+            f"/api/tickets/{uuid.uuid4()}",
+            json={"client": "Test"},
+        )
+        assert response.status_code == 404
+
+    async def test_patch_empty_body_returns_unchanged(self, client: AsyncClient) -> None:
+        list_response = await client.get("/api/tickets/active")
+        first_ticket = list_response.json()["items"][0]
+        ticket_id = first_ticket["ticket_id"]
+
+        response = await client.patch(
+            f"/api/tickets/{ticket_id}",
+            json={},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["client"] == first_ticket["client"]
+
+    async def test_patch_updates_updated_at(self, client: AsyncClient) -> None:
+        list_response = await client.get("/api/tickets/active")
+        first_ticket = list_response.json()["items"][0]
+        ticket_id = first_ticket["ticket_id"]
+
+        response = await client.patch(
+            f"/api/tickets/{ticket_id}",
+            json={"client": "Updated"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["updated_at"] is not None

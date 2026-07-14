@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useParams, useNavigate } from "react-router-dom"
-import { api } from "@/services/api"
+import { useState } from "react"
+import { api, type ActiveTicket, type UpdateTicketRequest } from "@/services/api"
 import {
   Card,
   CardContent,
@@ -25,6 +26,9 @@ import {
   Hash,
   Timer,
   BarChart3,
+  Pencil,
+  Save,
+  X,
 } from "lucide-react"
 
 function statusBadge(status: string): { label: string; className: string } {
@@ -133,9 +137,78 @@ function InfoRow({
   )
 }
 
+function EditableField({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  type = "text",
+  min,
+  max,
+}: {
+  icon: typeof User
+  label: string
+  value: string | number | null
+  onChange: (value: string | number | null) => void
+  type?: "text" | "number" | "datetime-local"
+  min?: number
+  max?: number
+}) {
+  const formatForInput = (v: string | number | null): string => {
+    if (v === null) return ""
+    if (type === "datetime-local" && typeof v === "string") {
+      try {
+        const date = new Date(v)
+        return date.toISOString().slice(0, 16)
+      } catch {
+        return ""
+      }
+    }
+    return String(v)
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        {type === "text" ? (
+          <input
+            type="text"
+            value={formatForInput(value)}
+            onChange={(e) => onChange(e.target.value || null)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        ) : type === "number" ? (
+          <input
+            type="number"
+            value={formatForInput(value)}
+            onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+            min={min}
+            max={max}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        ) : (
+          <input
+            type="datetime-local"
+            value={formatForInput(value)}
+            onChange={(e) => onChange(e.target.value ? e.target.value : null)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function TaskDetail() {
   const { ticketId } = useParams<{ ticketId: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<UpdateTicketRequest>({})
 
   const {
     data: ticket,
@@ -150,6 +223,43 @@ export function TaskDetail() {
     },
     enabled: !!ticketId,
   })
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: UpdateTicketRequest) => {
+      const response = await api.tickets.update(ticketId!, data)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["active-task", ticketId] })
+      queryClient.invalidateQueries({ queryKey: ["active-tasks"] })
+      setIsEditing(false)
+      setEditForm({})
+    },
+  })
+
+  const handleStartEdit = () => {
+    if (!ticket) return
+    setEditForm({
+      client: ticket.client,
+      contact: ticket.contact,
+      project_number: ticket.project_number,
+      task_description: ticket.task_description,
+      deadline: ticket.deadline,
+      budget_hours: ticket.budget_hours,
+      estimated_hours: ticket.estimated_hours,
+      priority: ticket.priority,
+    })
+    setIsEditing(true)
+  }
+
+  const handleSaveEdit = () => {
+    updateMutation.mutate(editForm)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditForm({})
+  }
 
   if (isLoading) {
     return (
@@ -215,7 +325,7 @@ export function TaskDetail() {
   }
 
   const badge = statusBadge(ticket.status)
-  const deadline = deadlineInfo(ticket.deadline)
+  const deadline = deadlineInfo(isEditing ? editForm.deadline : ticket.deadline)
   const DeadlineIcon = deadline.icon
   const ticketIdShort = ticket.ticket_id.slice(0, 8)
 
@@ -251,7 +361,49 @@ export function TaskDetail() {
             {badge.label}
           </div>
         </div>
+        <div className="ml-auto">
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+                disabled={updateMutation.isPending}
+              >
+                <X className="size-3.5" />
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Save className="size-3.5" />
+                )}
+                Save
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartEdit}
+            >
+              <Pencil className="size-3.5" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
+
+      {updateMutation.isError && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+          Failed to update ticket. Please try again.
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -262,9 +414,34 @@ export function TaskDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoRow icon={User} label="Client" value={ticket.client} />
-            <InfoRow icon={Mail} label="Contact" value={ticket.contact} />
-            <InfoRow icon={FolderOpen} label="Project Number" value={ticket.project_number} />
+            {isEditing ? (
+              <>
+                <EditableField
+                  icon={User}
+                  label="Client"
+                  value={editForm.client ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, client: v as string | null })}
+                />
+                <EditableField
+                  icon={Mail}
+                  label="Contact"
+                  value={editForm.contact ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, contact: v as string | null })}
+                />
+                <EditableField
+                  icon={FolderOpen}
+                  label="Project Number"
+                  value={editForm.project_number ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, project_number: v as string | null })}
+                />
+              </>
+            ) : (
+              <>
+                <InfoRow icon={User} label="Client" value={ticket.client} />
+                <InfoRow icon={Mail} label="Contact" value={ticket.contact} />
+                <InfoRow icon={FolderOpen} label="Project Number" value={ticket.project_number} />
+              </>
+            )}
             <InfoRow icon={Hash} label="Ticket ID" value={ticket.ticket_id} />
             {ticket.conversation_id && (
               <InfoRow icon={Hash} label="Conversation ID" value={ticket.conversation_id} />
@@ -280,23 +457,62 @@ export function TaskDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-3">
-              <DeadlineIcon className={cn("mt-0.5 size-4 shrink-0", deadline.className)} />
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Deadline
-                </p>
-                <p className={cn("text-sm font-medium", deadline.className)}>
-                  {deadline.text}
-                </p>
-                {deadline.subtext && (
-                  <p className="text-xs text-muted-foreground">{deadline.subtext}</p>
-                )}
-              </div>
-            </div>
-            <InfoRow icon={Timer} label="Budget Hours" value={ticket.budget_hours} />
-            <InfoRow icon={Timer} label="Estimated Hours" value={ticket.estimated_hours} />
-            <InfoRow icon={BarChart3} label="Priority" value={ticket.priority} />
+            {isEditing ? (
+              <>
+                <EditableField
+                  icon={Clock}
+                  label="Deadline"
+                  value={editForm.deadline ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, deadline: v as string | null })}
+                  type="datetime-local"
+                />
+                <EditableField
+                  icon={Timer}
+                  label="Budget Hours"
+                  value={editForm.budget_hours ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, budget_hours: v as number | null })}
+                  type="number"
+                  min={0}
+                />
+                <EditableField
+                  icon={Timer}
+                  label="Estimated Hours"
+                  value={editForm.estimated_hours ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, estimated_hours: v as number | null })}
+                  type="number"
+                  min={0}
+                />
+                <EditableField
+                  icon={BarChart3}
+                  label="Priority"
+                  value={editForm.priority ?? null}
+                  onChange={(v) => setEditForm({ ...editForm, priority: v as number | null })}
+                  type="number"
+                  min={0}
+                  max={10}
+                />
+              </>
+            ) : (
+              <>
+                <div className="flex items-start gap-3">
+                  <DeadlineIcon className={cn("mt-0.5 size-4 shrink-0", deadline.className)} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Deadline
+                    </p>
+                    <p className={cn("text-sm font-medium", deadline.className)}>
+                      {deadline.text}
+                    </p>
+                    {deadline.subtext && (
+                      <p className="text-xs text-muted-foreground">{deadline.subtext}</p>
+                    )}
+                  </div>
+                </div>
+                <InfoRow icon={Timer} label="Budget Hours" value={ticket.budget_hours} />
+                <InfoRow icon={Timer} label="Estimated Hours" value={ticket.estimated_hours} />
+                <InfoRow icon={BarChart3} label="Priority" value={ticket.priority} />
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -309,7 +525,14 @@ export function TaskDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {ticket.task_description ? (
+          {isEditing ? (
+            <textarea
+              value={editForm.task_description ?? ""}
+              onChange={(e) => setEditForm({ ...editForm, task_description: e.target.value || null })}
+              rows={4}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          ) : ticket.task_description ? (
             <p className="whitespace-pre-wrap text-sm leading-relaxed">
               {ticket.task_description}
             </p>

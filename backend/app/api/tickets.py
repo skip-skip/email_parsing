@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -187,3 +188,52 @@ async def get_ticket(
         media_type="application/json",
         headers={"ETag": etag},
     )
+
+
+class UpdateTicketRequest(BaseModel):
+    client: str | None = Field(None, description="Client name")
+    contact: str | None = Field(None, description="Contact email or name")
+    project_number: str | None = Field(None, description="Project number")
+    task_description: str | None = Field(None, description="Task description")
+    deadline: str | None = Field(None, description="Deadline in ISO format (YYYY-MM-DDTHH:MM:SS)")
+    budget_hours: float | None = Field(None, ge=0, description="Budget hours")
+    estimated_hours: float | None = Field(None, ge=0, description="Estimated hours")
+    priority: int | None = Field(None, ge=0, le=10, description="Priority (0-10)")
+
+
+@router.patch("/{ticket_id}", response_model=TicketResponse)
+async def update_ticket(
+    ticket_id: uuid.UUID,
+    request: Request,
+    body: UpdateTicketRequest,
+    db: AsyncSession = Depends(get_db),
+) -> TicketResponse:
+    result = await db.execute(select(Ticket).where(Ticket.ticket_id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    update_data = body.model_dump(exclude_unset=True)
+
+    if "deadline" in update_data:
+        if update_data["deadline"] is not None:
+            try:
+                update_data["deadline"] = datetime.fromisoformat(update_data["deadline"])
+            except (ValueError, TypeError):
+                raise HTTPException(status_code=422, detail="Invalid deadline format. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
+        else:
+            update_data["deadline"] = None
+
+    for key, value in update_data.items():
+        setattr(ticket, key, value)
+
+    ticket.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(ticket)
+
+    events_result = await db.execute(
+        select(CalendarEvent).where(CalendarEvent.ticket_id == ticket_id)
+    )
+    events = list(events_result.scalars().all())
+
+    return _ticket_to_response(ticket, events)

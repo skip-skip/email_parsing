@@ -165,6 +165,17 @@ export interface ModifyScheduleRequest {
   blocks: ScheduleBlock[]
 }
 
+export interface UpdateTicketRequest {
+  client?: string | null
+  contact?: string | null
+  project_number?: string | null
+  task_description?: string | null
+  deadline?: string | null
+  budget_hours?: number | null
+  estimated_hours?: number | null
+  priority?: number | null
+}
+
 export const api = {
   health: {
     check: () => apiClient.get<{ status: string }>("/health"),
@@ -232,6 +243,9 @@ export const api = {
 
     get: (ticketId: string) =>
       apiClient.get<ActiveTicket>(`/api/tickets/${ticketId}`),
+
+    update: (ticketId: string, data: UpdateTicketRequest) =>
+      apiClient.patch<ActiveTicket>(`/api/tickets/${ticketId}`, data),
   },
 
   aiLogs: {
