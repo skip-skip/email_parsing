@@ -212,43 +212,9 @@ class SchedulingQueue:
             await session.refresh(record)
 
             try:
-                await transition_ticket(ticket_uuid, TicketStatus.WAITING_FOR_INFORMATION, strict_mode=False)
+                await transition_ticket(ticket_uuid, TicketStatus.DENIED, strict_mode=False)
             except ValueError:
                 logger.warning("Ticket %s not found for status transition", ticket_id)
-
-            ticket_repo_for_draft = TicketRepository(session)
-            ticket = await ticket_repo_for_draft.get_by_id(ticket_uuid)
-            if ticket is not None and ticket.conversation_id:
-                try:
-                    draft = DraftEmail(
-                        to=ticket.contact or "",
-                        subject=f"Follow-up: {ticket.task_description or 'Your request'}",
-                        body=(
-                            "Hello,\n\n"
-                            "We were unable to schedule your task based on the proposed times.\n"
-                            "Please let us know your availability or any preferred time windows.\n\n"
-                            "Thank you."
-                        ),
-                        missing_fields=["schedule_preference"],
-                        ticket_id=ticket_uuid,
-                        conversation_id=ticket.conversation_id,
-                    )
-                    queue = get_missing_info_queue()
-                    await queue.add_to_queue(
-                        ticket_id=str(ticket_uuid),
-                        draft=draft,
-                        missing_fields=["schedule_preference"],
-                        confidence=0.0,
-                    )
-                    logger.info(
-                        "Added ticket %s to missing info queue after schedule decline",
-                        ticket_id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "Failed to add ticket %s to missing info queue after decline",
-                        ticket_id,
-                    )
 
             if email_provider is not None:
                 ticket_repo = TicketRepository(session)
