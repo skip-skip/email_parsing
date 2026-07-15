@@ -32,7 +32,7 @@ See also:
   IN_PROGRESS                    Work is underway
   COMPLETED                      Work done
   ARCHIVED                       Final resting state
-  DENIED                         Schedule declined (terminal state) [PLANNED]
+  DENIED                         Schedule declined (terminal state)
 
   Non-task emails are silently skipped at intake — no ticket is created.
 
@@ -109,9 +109,6 @@ See also:
 3. STATE TRANSITION MAP (Code)
 ================================================================================
 
-  CURRENT (codebase):
-  ───────────────────
-
   From                           To (valid targets)
   ─────────────────────────────  ─────────────────────────────────────────────
   NEW                            PARSED, WAITING_FOR_INFORMATION
@@ -120,41 +117,15 @@ See also:
   WAITING_FOR_INFORMATION        PARSED, VALIDATED, READY_FOR_SCHEDULING,
                                  AWAITING_REPLY
   AWAITING_REPLY                 READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
-  READY_FOR_SCHEDULING           PENDING_USER_APPROVAL
-  PENDING_USER_APPROVAL          ACCEPTED, WAITING_FOR_INFORMATION
   ACCEPTED                       CALENDAR_CREATED
   CALENDAR_CREATED               IN_PROGRESS
   IN_PROGRESS                    COMPLETED
   COMPLETED                      ARCHIVED
   ARCHIVED                       (none — terminal)
-  EXTRACTION_FAILED              (none — terminal, not in transition map)
+  EXTRACTION_FAILED              (none — terminal)
+  DENIED                         (none — terminal)
 
   Source: backend/app/workflows/transitions.py
-
-  PLANNED CHANGES:
-  ─────────────────
-
-  1. Remove PENDING_USER_APPROVAL from transition map (unreachable)
-  2. Add DENIED as terminal state
-  3. Add EXTRACTION_FAILED to ACTIVE_STATUSES
-
-  From                           To (valid targets)
-  ─────────────────────────────  ─────────────────────────────────────────────
-  NEW                            PARSED, WAITING_FOR_INFORMATION
-  PARSED                         VALIDATED, WAITING_FOR_INFORMATION
-  VALIDATED                      READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
-  WAITING_FOR_INFORMATION        PARSED, VALIDATED, READY_FOR_SCHEDULING,
-                                 AWAITING_REPLY
-  AWAITING_REPLY                 READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
-  READY_FOR_SCHEDULING           (removed — scheduling queue handles flow)
-  PENDING_USER_APPROVAL          (removed — unreachable)
-  ACCEPTED                       CALENDAR_CREATED
-  CALENDAR_CREATED               IN_PROGRESS
-  IN_PROGRESS                    COMPLETED
-  COMPLETED                      ARCHIVED
-  ARCHIVED                       (none — terminal)
-  EXTRACTION_FAILED              (none — terminal, added to ACTIVE_STATUSES)
-  DENIED                         (none — terminal, new status)
 
 
 ================================================================================
@@ -225,8 +196,8 @@ See also:
   requested_info                       AWAITING_REPLY
   awaiting_scheduling                  READY_FOR_SCHEDULING
   scheduled                            IN_PROGRESS (skips ACCEPTED, CALENDAR_CREATED)
-  denied                               Re-enters WAITING_FOR_INFORMATION [PLANNED: DENIED]
-  (not defined)                        EXTRACTION_FAILED (new terminal state)
+  denied                               DENIED (terminal state)
+  (not defined)                        EXTRACTION_FAILED (terminal state)
   (not defined)                        PENDING_USER_APPROVAL (unused in code path)
   (not defined)                        PARSED, VALIDATED (intermediate, not in ACTIVE_STATUSES)
 
@@ -235,37 +206,17 @@ See also:
 6. UI VISIBILITY
 ================================================================================
 
-  CURRENT (codebase):
-  ───────────────────
-
   Active Tasks view shows tickets with status:
-    NEW, ACCEPTED, CALENDAR_CREATED, IN_PROGRESS,
-    WAITING_FOR_INFORMATION, AWAITING_REPLY
-
-  Closed Tasks view shows tickets with status:
-    COMPLETED, DECLINED, CANCELLED
-
-  States NOT visible in either view (gap):
-    PARSED, VALIDATED, READY_FOR_SCHEDULING, PENDING_USER_APPROVAL,
-    EXTRACTION_FAILED, ARCHIVED
-
-  Source: backend/app/api/tickets.py, line 21
-
-  PLANNED CHANGES:
-  ─────────────────
-
-  1. Add EXTRACTION_FAILED to ACTIVE_STATUSES
-  2. Add DENIED to CLOSED_STATUSES
-
-  Active Tasks view will show:
     NEW, ACCEPTED, CALENDAR_CREATED, IN_PROGRESS,
     WAITING_FOR_INFORMATION, AWAITING_REPLY, EXTRACTION_FAILED
 
-  Closed Tasks view will show:
+  Closed Tasks view shows tickets with status:
     COMPLETED, DENIED, ARCHIVED
 
-  States still NOT visible:
+  States NOT visible in either view:
     PARSED, VALIDATED, READY_FOR_SCHEDULING, PENDING_USER_APPROVAL
+
+  Source: backend/app/api/tickets.py
 
 
 ================================================================================
@@ -274,28 +225,28 @@ See also:
 
   1. EXTRACTION_FAILED is not in ACTIVE_STATUSES or CLOSED_STATUSES.
      Tickets in this state are invisible in all UI views.
-     Status: PLANNED FIX — Add to ACTIVE_STATUSES
+     Status: FIXED — Added to ACTIVE_STATUSES
 
   2. PENDING_USER_APPROVAL is in the transition map but no code path
      reaches it. The scheduling queue approve path jumps directly
      from READY_FOR_SCHEDULING to IN_PROGRESS (strict_mode=False).
-     Status: PLANNED FIX — Remove from transition map
+     Status: FIXED — Removed from transition map
 
   3. Ticket status and queue entry status are decoupled. A ticket can
      be in WAITING_FOR_INFORMATION with no queue entry (if
      _create_missing_info_entry fails), or have a queue entry with
      a different ticket status.
-     Status: PLANNED FIX — Add recovery mechanism
+     Status: FIXED — Added recovery mechanism (backend/app/services/recovery.py)
 
   4. _persist_ticket_status silently swallows exceptions. If the
      transition fails, the ticket retains its old status with no
      retry or alert.
-     Status: PLANNED FIX — Add logging and consider re-raise
+     Status: FIXED — Now re-raises exceptions after logging
 
   5. The "denied" path from the original design has no dedicated status.
      Schedule decline re-enters WAITING_FOR_INFORMATION, which may
      confuse users who expected a terminal "denied" state.
-     Status: PLANNED FIX — Add DENIED status
+     Status: FIXED — Added DENIED status as terminal state
 
 
 ================================================================================
@@ -362,7 +313,7 @@ See also:
 
       Decline (scheduling_queue.py:270)
         Queue: PENDING → DECLINED
-        Ticket: READY_FOR_SCHEDULING → WAITING_FOR_INFORMATION [PLANNED: DENIED]
+        Ticket: READY_FOR_SCHEDULING → DENIED
 
     Ticket API
       Close (tickets.py:94)
