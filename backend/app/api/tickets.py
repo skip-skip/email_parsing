@@ -18,7 +18,7 @@ from backend.app.workflows.states import TicketStatus
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
-ACTIVE_STATUSES = ("NEW", "ACCEPTED", "CALENDAR_CREATED", "IN_PROGRESS", "WAITING_FOR_INFORMATION", "AWAITING_REPLY")
+ACTIVE_STATUSES = ("NEW", "ACCEPTED", "CALENDAR_CREATED", "IN_PROGRESS", "WAITING_FOR_INFORMATION", "AWAITING_REPLY", "EXTRACTION_FAILED")
 
 
 class CalendarEventResponse(BaseModel):
