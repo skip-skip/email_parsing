@@ -387,8 +387,7 @@ class EmailProcessor:
             task_description = parsed_data.get("task_description") if isinstance(parsed_data, dict) else None
 
             draft_agent = EmailDraftAgent()
-            draft = await asyncio.to_thread(
-                draft_agent.draft,
+            draft = await draft_agent.draft(
                 ticket_id=str(ticket_id),
                 sender=message.sender,
                 subject=message.subject or "Your request",
