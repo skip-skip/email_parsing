@@ -23,6 +23,7 @@ VALID_TRANSITIONS: dict[TicketStatus, list[TicketStatus]] = {
     TicketStatus.IN_PROGRESS: [TicketStatus.COMPLETED],
     TicketStatus.COMPLETED: [TicketStatus.ARCHIVED],
     TicketStatus.ARCHIVED: [],
+    TicketStatus.DENIED: [],
 }
 
 
