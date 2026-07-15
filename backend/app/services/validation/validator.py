@@ -53,7 +53,7 @@ class TicketValidator:
             is_valid = self._validate_field(rule, value)
             field_status[rule.name] = is_valid
 
-            if not is_valid:
+            if not is_valid and rule.required:
                 missing_fields.append(rule.name)
 
             if rule.name == "deadline" and value is not None:
