@@ -333,6 +333,9 @@ class EmailProcessor:
         Args:
             ticket_id: The UUID of the ticket to update.
             status: The new status string from the workflow.
+
+        Raises:
+            Exception: Re-raises any exception from transition_ticket after logging.
         """
         if status == "EXTRACTION_FAILED":
             logger.info(
@@ -347,6 +350,7 @@ class EmailProcessor:
             logger.exception(
                 "Failed to persist status %s for ticket %s", status, ticket_id
             )
+            raise
 
     async def _create_missing_info_entry(
         self,
