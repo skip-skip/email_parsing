@@ -164,7 +164,7 @@ async def list_active_tickets(
     )
 
 
-CLOSED_STATUSES = ("COMPLETED", "DECLINED", "CANCELLED")
+CLOSED_STATUSES = ("COMPLETED", "DENIED", "ARCHIVED")
 
 
 @router.get("/closed", response_model=PaginatedTicketResponse)
