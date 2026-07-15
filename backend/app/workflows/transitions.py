@@ -16,8 +16,6 @@ VALID_TRANSITIONS: dict[TicketStatus, list[TicketStatus]] = {
     TicketStatus.VALIDATED: [TicketStatus.READY_FOR_SCHEDULING, TicketStatus.WAITING_FOR_INFORMATION],
     TicketStatus.WAITING_FOR_INFORMATION: [TicketStatus.PARSED, TicketStatus.VALIDATED, TicketStatus.READY_FOR_SCHEDULING, TicketStatus.AWAITING_REPLY],
     TicketStatus.AWAITING_REPLY: [TicketStatus.READY_FOR_SCHEDULING, TicketStatus.WAITING_FOR_INFORMATION],
-    TicketStatus.READY_FOR_SCHEDULING: [TicketStatus.PENDING_USER_APPROVAL],
-    TicketStatus.PENDING_USER_APPROVAL: [TicketStatus.ACCEPTED, TicketStatus.WAITING_FOR_INFORMATION],
     TicketStatus.ACCEPTED: [TicketStatus.CALENDAR_CREATED],
     TicketStatus.CALENDAR_CREATED: [TicketStatus.IN_PROGRESS],
     TicketStatus.IN_PROGRESS: [TicketStatus.COMPLETED],
