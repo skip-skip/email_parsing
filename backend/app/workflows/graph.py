@@ -10,6 +10,7 @@ from backend.app.workflows.nodes.draft_missing_info_email import (
     draft_missing_info_email,
 )
 from backend.app.workflows.nodes.extract_task import extract_task
+from backend.app.workflows.nodes.extraction_failed import extraction_failed
 from backend.app.workflows.nodes.plan_schedule import plan_schedule
 from backend.app.workflows.nodes.receive_email import receive_email
 from backend.app.workflows.nodes.route_by_validation import route_by_validation
@@ -33,6 +34,7 @@ def build_workflow_graph() -> StateGraph:
     graph.add_node("extract_task", extract_task)
     graph.add_node("validate_fields", validate_fields)
     graph.add_node("draft_missing_info_email", draft_missing_info_email)
+    graph.add_node("extraction_failed", extraction_failed)
     graph.add_node("plan_schedule", plan_schedule)
     graph.add_node("create_calendar_event", create_calendar_event)
     graph.add_node("dispatch_task", dispatch_task)
@@ -44,10 +46,12 @@ def build_workflow_graph() -> StateGraph:
         "validate_fields",
         route_by_validation,
         {
+            "extraction_failed": "extraction_failed",
             "draft_missing_info_email": "draft_missing_info_email",
             "plan_schedule": "plan_schedule",
         },
     )
+    graph.add_edge("extraction_failed", END)
     graph.add_edge("draft_missing_info_email", END)
     graph.add_edge("plan_schedule", "create_calendar_event")
     graph.add_edge("create_calendar_event", "dispatch_task")

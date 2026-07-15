@@ -24,6 +24,7 @@ class DraftEmail:
     body: str
     missing_fields: list[str]
     ticket_id: uuid.UUID
+    conversation_id: str | None = None
 
 
 class EmailDraftAgent:
@@ -50,6 +51,7 @@ class EmailDraftAgent:
         project_number: str | None,
         task_description: str | None,
         missing_fields: list[str],
+        conversation_id: str | None = None,
     ) -> DraftEmail:
         """Draft a follow-up email requesting missing information.
 
@@ -90,6 +92,7 @@ class EmailDraftAgent:
                 body=body,
                 missing_fields=missing_fields,
                 ticket_id=uuid.UUID(ticket_id),
+                conversation_id=conversation_id,
             )
 
             await self._log_draft(
@@ -110,7 +113,7 @@ class EmailDraftAgent:
                 error=True,
             )
             return self._template_draft(
-                sender, subject, missing_fields, ticket_id
+                sender, subject, missing_fields, ticket_id, conversation_id
             )
 
     def _template_draft(
@@ -119,6 +122,7 @@ class EmailDraftAgent:
         subject: str,
         missing_fields: list[str],
         ticket_id: str,
+        conversation_id: str | None = None,
     ) -> DraftEmail:
         fields_text = "\n".join(f"  - {field}" for field in missing_fields)
         body = (
@@ -135,6 +139,7 @@ class EmailDraftAgent:
             body=body,
             missing_fields=missing_fields,
             ticket_id=uuid.UUID(ticket_id),
+            conversation_id=conversation_id,
         )
 
     async def _log_draft(

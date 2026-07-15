@@ -1,0 +1,378 @@
+================================================================================
+                        TICKET STATE FLOW
+                        AI Task Manager
+================================================================================
+
+This document describes the complete ticket lifecycle from email ingestion to
+completion. It reconciles the original design intent (state_flow.txt v1) with
+the current codebase implementation.
+
+See also:
+  - architecture.md   — system overview and component design
+  - api.md            — REST API reference
+  - setup.md          — local development setup
+
+
+================================================================================
+1. STATE DEFINITIONS
+================================================================================
+
+  Status                         Description
+  ─────────────────────────────  ─────────────────────────────────────────────
+  NEW                            Ticket created from incoming email
+  PARSED                         LLM has extracted structured fields
+  VALIDATED                      Deterministic rules have checked fields
+  WAITING_FOR_INFORMATION        Missing fields detected; follow-up queued
+  AWAITING_REPLY                 Follow-up email sent; awaiting sender reply
+  EXTRACTION_FAILED              LLM extraction failed (low confidence)
+  READY_FOR_SCHEDULING           All fields present; ready for calendar planning
+  PENDING_USER_APPROVAL          Schedule suggested; awaiting user decision
+  ACCEPTED                       User approved the schedule
+  CALENDAR_CREATED               Calendar events created in Outlook
+  IN_PROGRESS                    Work is underway
+  COMPLETED                      Work done
+  ARCHIVED                       Final resting state
+  DENIED                         Schedule declined (terminal state) [PLANNED]
+
+  Non-task emails are silently skipped at intake — no ticket is created.
+
+
+================================================================================
+2. COMPLETE STATE DIAGRAM
+================================================================================
+
+  Email arrives
+       |
+       v
+  ┌─────────┐    classification     ┌─────────┐
+  │ receive  │ ──── is_task? ──No──> │  SKIP   │  (no ticket created)
+  │  email   │                       └─────────┘
+  └────┬─────┘
+       │ Yes
+       v
+  ┌─────────┐    LLM extraction     ┌─────────────────┐
+  │  extract │ ──── confidence ──No──│   EXTRACTION    │
+  │   task   │     < 0.3 ?          │     FAILED      │
+  └────┬─────┘                      └─────────────────┘
+       │ Yes
+       v
+  ┌─────────┐    field validation    ┌─────────────────┐
+  │ validate │ ──── has missing ──Yes│    WAITING_     │
+  │  fields  │     fields ?          │     FOR_        │
+  └────┬─────┘                      │  INFORMATION    │
+       │ No (complete)              └────────┬────────┘
+       v                                     │
+  ┌──────────────┐                           │  send follow-up email
+  │   READY_     │                           v
+  │    FOR_      │                      ┌─────────────┐
+  │  SCHEDULING  │                      │  AWAITING_  │
+  └──────┬───────┘                      │    REPLY    │
+         │                              └──────┬──────┘
+         │                                     │  sender replies
+         │   user reviews                      │
+         v                              ┌──────┴──────┐
+  ┌──────────────┐                      │   re-validate│
+  │   PENDING_   │                      └──────┬──────┘
+  │    USER_     │                             │
+  │   APPROVAL   │                    complete? ──Yes──> READY_FOR_SCHEDULING
+  └──────┬───────┘                             │
+         │                                    No
+         │  user accepts                       │
+         v                              back to WAITING_FOR_INFORMATION
+  ┌──────────────┐
+  │   ACCEPTED   │
+  └──────┬───────┘
+         │
+         v
+  ┌──────────────┐
+  │   CALENDAR_  │
+  │   CREATED    │
+  └──────┬───────┘
+         │
+         v
+  ┌──────────────┐
+  │  IN_PROGRESS │
+  └──────┬───────┘
+         │  user closes
+         v
+  ┌──────────────┐
+  │   COMPLETED  │
+  └──────┬───────┘
+         │  archived
+         v
+  ┌──────────────┐
+  │   ARCHIVED   │  (terminal)
+  └──────────────┘
+
+
+================================================================================
+3. STATE TRANSITION MAP (Code)
+================================================================================
+
+  CURRENT (codebase):
+  ───────────────────
+
+  From                           To (valid targets)
+  ─────────────────────────────  ─────────────────────────────────────────────
+  NEW                            PARSED, WAITING_FOR_INFORMATION
+  PARSED                         VALIDATED, WAITING_FOR_INFORMATION
+  VALIDATED                      READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
+  WAITING_FOR_INFORMATION        PARSED, VALIDATED, READY_FOR_SCHEDULING,
+                                 AWAITING_REPLY
+  AWAITING_REPLY                 READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
+  READY_FOR_SCHEDULING           PENDING_USER_APPROVAL
+  PENDING_USER_APPROVAL          ACCEPTED, WAITING_FOR_INFORMATION
+  ACCEPTED                       CALENDAR_CREATED
+  CALENDAR_CREATED               IN_PROGRESS
+  IN_PROGRESS                    COMPLETED
+  COMPLETED                      ARCHIVED
+  ARCHIVED                       (none — terminal)
+  EXTRACTION_FAILED              (none — terminal, not in transition map)
+
+  Source: backend/app/workflows/transitions.py
+
+  PLANNED CHANGES:
+  ─────────────────
+
+  1. Remove PENDING_USER_APPROVAL from transition map (unreachable)
+  2. Add DENIED as terminal state
+  3. Add EXTRACTION_FAILED to ACTIVE_STATUSES
+
+  From                           To (valid targets)
+  ─────────────────────────────  ─────────────────────────────────────────────
+  NEW                            PARSED, WAITING_FOR_INFORMATION
+  PARSED                         VALIDATED, WAITING_FOR_INFORMATION
+  VALIDATED                      READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
+  WAITING_FOR_INFORMATION        PARSED, VALIDATED, READY_FOR_SCHEDULING,
+                                 AWAITING_REPLY
+  AWAITING_REPLY                 READY_FOR_SCHEDULING, WAITING_FOR_INFORMATION
+  READY_FOR_SCHEDULING           (removed — scheduling queue handles flow)
+  PENDING_USER_APPROVAL          (removed — unreachable)
+  ACCEPTED                       CALENDAR_CREATED
+  CALENDAR_CREATED               IN_PROGRESS
+  IN_PROGRESS                    COMPLETED
+  COMPLETED                      ARCHIVED
+  ARCHIVED                       (none — terminal)
+  EXTRACTION_FAILED              (none — terminal, added to ACTIVE_STATUSES)
+  DENIED                         (none — terminal, new status)
+
+
+================================================================================
+4. QUEUE ENTRY LIFECYCLE
+================================================================================
+
+  Queue entries are SEPARATE database records in the missing_info_queue and
+  scheduling_queue tables. A ticket's status and its queue entry status are
+  independent — they can drift out of sync.
+
+  Missing Info Queue
+  ──────────────────
+
+    Ticket enters WAITING_FOR_INFORMATION
+         |
+         v
+    MissingInfoQueueRecord created (status: PENDING)
+         |
+         v
+    User reviews draft in dashboard
+         |
+    ┌────┴────────────────────────────┐
+    │                                │
+    v                                v
+  Approve                         Reject
+  (sends email)                   (no action)
+    |                                |
+    v                                v
+  AWAITING_REPLY                REJECTED (hidden from queue)
+    |
+    v
+  Sender replies -> ticket re-validates
+    |
+    ├─> complete: ticket -> READY_FOR_SCHEDULING (queue record stays)
+    └─> still missing: new PENDING record created
+
+  Scheduling Queue
+  ────────────────
+
+    Ticket enters READY_FOR_SCHEDULING
+         |
+         v
+    SchedulingQueueRecord created (status: PENDING)
+         |
+         v
+    User reviews schedule in dashboard
+         |
+    ┌────┴────────────────────────────┐
+    │         │           │           │
+    v         v           v           v
+  Accept    Decline     Modify     (repeat)
+    |         |           |
+    v         v           v
+  APPROVED  DECLINED   (stays PENDING, updated blocks)
+    |
+    v
+  ticket -> IN_PROGRESS (skips ACCEPTED, CALENDAR_CREATED)
+
+
+================================================================================
+5. ORIGINAL DESIGN vs. CURRENT IMPLEMENTATION
+================================================================================
+
+  Original (state_flow.txt v1)         Current (codebase)
+  ────────────────────────────────     ────────────────────────────────────────
+  non-task status                      Silently skipped (no ticket created)
+  missing_info                         WAITING_FOR_INFORMATION
+  requested_info                       AWAITING_REPLY
+  awaiting_scheduling                  READY_FOR_SCHEDULING
+  scheduled                            IN_PROGRESS (skips ACCEPTED, CALENDAR_CREATED)
+  denied                               Re-enters WAITING_FOR_INFORMATION [PLANNED: DENIED]
+  (not defined)                        EXTRACTION_FAILED (new terminal state)
+  (not defined)                        PENDING_USER_APPROVAL (unused in code path)
+  (not defined)                        PARSED, VALIDATED (intermediate, not in ACTIVE_STATUSES)
+
+
+================================================================================
+6. UI VISIBILITY
+================================================================================
+
+  CURRENT (codebase):
+  ───────────────────
+
+  Active Tasks view shows tickets with status:
+    NEW, ACCEPTED, CALENDAR_CREATED, IN_PROGRESS,
+    WAITING_FOR_INFORMATION, AWAITING_REPLY
+
+  Closed Tasks view shows tickets with status:
+    COMPLETED, DECLINED, CANCELLED
+
+  States NOT visible in either view (gap):
+    PARSED, VALIDATED, READY_FOR_SCHEDULING, PENDING_USER_APPROVAL,
+    EXTRACTION_FAILED, ARCHIVED
+
+  Source: backend/app/api/tickets.py, line 21
+
+  PLANNED CHANGES:
+  ─────────────────
+
+  1. Add EXTRACTION_FAILED to ACTIVE_STATUSES
+  2. Add DENIED to CLOSED_STATUSES
+
+  Active Tasks view will show:
+    NEW, ACCEPTED, CALENDAR_CREATED, IN_PROGRESS,
+    WAITING_FOR_INFORMATION, AWAITING_REPLY, EXTRACTION_FAILED
+
+  Closed Tasks view will show:
+    COMPLETED, DENIED, ARCHIVED
+
+  States still NOT visible:
+    PARSED, VALIDATED, READY_FOR_SCHEDULING, PENDING_USER_APPROVAL
+
+
+================================================================================
+7. KNOWN INTEGRATION ISSUES
+================================================================================
+
+  1. EXTRACTION_FAILED is not in ACTIVE_STATUSES or CLOSED_STATUSES.
+     Tickets in this state are invisible in all UI views.
+     Status: PLANNED FIX — Add to ACTIVE_STATUSES
+
+  2. PENDING_USER_APPROVAL is in the transition map but no code path
+     reaches it. The scheduling queue approve path jumps directly
+     from READY_FOR_SCHEDULING to IN_PROGRESS (strict_mode=False).
+     Status: PLANNED FIX — Remove from transition map
+
+  3. Ticket status and queue entry status are decoupled. A ticket can
+     be in WAITING_FOR_INFORMATION with no queue entry (if
+     _create_missing_info_entry fails), or have a queue entry with
+     a different ticket status.
+     Status: PLANNED FIX — Add recovery mechanism
+
+  4. _persist_ticket_status silently swallows exceptions. If the
+     transition fails, the ticket retains its old status with no
+     retry or alert.
+     Status: PLANNED FIX — Add logging and consider re-raise
+
+  5. The "denied" path from the original design has no dedicated status.
+     Schedule decline re-enters WAITING_FOR_INFORMATION, which may
+     confuse users who expected a terminal "denied" state.
+     Status: PLANNED FIX — Add DENIED status
+
+
+================================================================================
+8. BACKEND vs FRONTEND STATE TRANSITIONS
+================================================================================
+
+  The workflow nodes handle the automated transitions (backend). Queue actions
+  and API endpoints handle the user-initiated transitions (frontend).
+
+  BACKEND (automated workflow nodes)
+  ──────────────────────────────────
+
+    receive_email → extract_task          email_processor.py:181
+      Persists: NEW
+
+    extract_task → validate_fields        route_by_validation.py:31
+      Persists: PARSED (skipped — not persisted)
+
+    validate_fields → plan_schedule       route_by_validation.py:27
+      Persists: (not persisted — intermediate)
+
+    validate_fields → draft_missing_info  route_by_validation.py:32
+      Persists: WAITING_FOR_INFORMATION (line 327)
+      Also creates: MissingInfoQueueRecord
+
+    draft_missing_info → dispatch_email   draft_missing_info_email.py:175
+      Persists: (no status change)
+
+    plan_schedule → create_calendar       plan_schedule.py:214
+      Persists: (not persisted — intermediate)
+      Also creates: SchedulingQueueRecord
+
+    create_calendar → dispatch_task       create_calendar_events.py:211
+      Persists: IN_PROGRESS (line 323)
+
+    receive_email → SKIP                  email_processor.py:179
+      No ticket created
+
+    receive_email → extraction_failed     extract_task.py:23
+      Persists: EXTRACTION_FAILED (email_processor.py:214)
+
+    reply handling (ConversationHandler)
+      Re-validates and transitions:
+        WAITING_FOR_INFORMATION → PARSED/VALIDATED/READY_FOR_SCHEDULING
+        AWAITING_REPLY → READY_FOR_SCHEDULING/WAITING_FOR_INFORMATION
+      Persists: (handled by re-validation logic)
+
+  FRONTEND (user-initiated via API)
+  ─────────────────────────────────
+
+    Missing Info Queue
+      Approve (missing_info_queue.py:232)
+        Queue: PENDING → APPROVED
+        Ticket: no status change
+
+      Reject (missing_info_queue.py:262)
+        Queue: PENDING → REJECTED
+        Ticket: no status change
+
+    Scheduling Queue
+      Accept (scheduling_queue.py:240)
+        Queue: PENDING → APPROVED
+        Ticket: READY_FOR_SCHEDULING → IN_PROGRESS (strict_mode=False)
+
+      Decline (scheduling_queue.py:270)
+        Queue: PENDING → DECLINED
+        Ticket: READY_FOR_SCHEDULING → WAITING_FOR_INFORMATION [PLANNED: DENIED]
+
+    Ticket API
+      Close (tickets.py:94)
+        Ticket: IN_PROGRESS → COMPLETED
+
+      Archive (tickets.py:112)
+        Ticket: COMPLETED → ARCHIVED
+
+  QUEUE ENTRY CREATION (backend-automated)
+  ────────────────────────────────────────
+
+    MissingInfoQueueRecord created by draft_missing_info_email.py:188
+    SchedulingQueueRecord created by plan_schedule.py:218

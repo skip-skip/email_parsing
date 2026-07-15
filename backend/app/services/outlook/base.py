@@ -39,6 +39,18 @@ class EmailProvider(ABC):
         ...
 
     @abstractmethod
+    async def send_new_email(
+        self, to: str, subject: str, body: str, conversation_id: str | None = None
+    ) -> None:
+        """Send a new email to the specified recipient.
+
+        If conversation_id is provided, the email is sent as a reply-all
+        to the last message in that conversation thread, preserving the
+        thread in Outlook.
+        """
+        ...
+
+    @abstractmethod
     async def get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
         """Retrieve a single message by its Outlook EntryID."""
         ...

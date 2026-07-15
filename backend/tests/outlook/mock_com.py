@@ -18,6 +18,7 @@ class MockMailItem:
     ConversationID: str = "conv-123"
     EntryID: str = "entry-001"
     SenderName: str = "Test Sender"
+    SenderEmailAddress: str = "test@example.com"
     Subject: str = "Test Subject"
     Body: str = "Test Body"
     ReceivedTime: datetime = field(default_factory=datetime.now)
@@ -166,8 +167,21 @@ class MockNamespace:
 
 
 @dataclass
+class MockNewMailItem:
+    To: str = ""
+    Subject: str = ""
+    Body: str = ""
+
+    def Send(self) -> None:
+        pass
+
+
+@dataclass
 class MockOutlookApp:
     _namespace: MockNamespace = field(default_factory=MockNamespace)
 
     def GetNamespace(self, name: str) -> MockNamespace:
         return self._namespace
+
+    def CreateItem(self, item_type: int) -> MockNewMailItem:
+        return MockNewMailItem()

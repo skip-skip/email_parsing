@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 
 from backend.app.agents.conversation_tracker import ConversationTracker
+from backend.app.agents.email_draft_agent import DraftEmail
 from backend.app.services.database import async_session_factory
 from backend.app.services.database.repositories.email_repository import EmailRepository
 from backend.app.services.database.repositories.ticket_repository import (
@@ -123,6 +124,38 @@ class ConversationHandler:
                     ticket.ticket_id,
                     validation.missing_fields,
                 )
+                if ticket.conversation_id and validation.missing_fields:
+                    try:
+                        draft = DraftEmail(
+                            to=ticket.contact or "",
+                            subject=f"Follow-up: {ticket.task_description or 'Your request'}",
+                            body=(
+                                "Hello,\n\n"
+                                "Thank you for your reply. We still need the following information "
+                                "to proceed with your request:\n\n"
+                                + "\n".join(f"- {f}" for f in validation.missing_fields)
+                                + "\n\nPlease provide the above details.\n\nThank you."
+                            ),
+                            missing_fields=validation.missing_fields,
+                            ticket_id=ticket.ticket_id,
+                            conversation_id=ticket.conversation_id,
+                        )
+                        queue = get_missing_info_queue()
+                        await queue.add_to_queue(
+                            ticket_id=str(ticket.ticket_id),
+                            draft=draft,
+                            missing_fields=validation.missing_fields,
+                            confidence=0.0,
+                        )
+                        logger.info(
+                            "Added ticket %s to missing info queue after incomplete reply",
+                            ticket.ticket_id,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to add ticket %s to missing info queue after reply",
+                            ticket.ticket_id,
+                        )
 
             return ReplyResult(
                 ticket_id=str(ticket.ticket_id),

@@ -48,7 +48,7 @@ def _map_com_message(message) -> EmailMessage:
     return EmailMessage(
         conversation_id=message.ConversationID or "",
         entry_id=message.EntryID or "",
-        sender=message.SenderName or "",
+        sender=message.SenderEmailAddress or message.SenderName or "",
         subject=message.Subject or "",
         body=message.Body or "",
         received_time=message.ReceivedTime,
@@ -130,6 +130,31 @@ class OutlookComEmailProvider(EmailProvider):
         reply_all.Body = body
         reply_all.Send()
 
+    def _send_new_email(
+        self, to: str, subject: str, body: str, conversation_id: str | None = None
+    ) -> None:
+        if conversation_id:
+            inbox = _get_inbox(self._namespace)
+            messages = inbox.Items
+            filter_str = f"[ConversationID] = '{conversation_id}'"
+            conversation = messages.Restrict(filter_str)
+            conversation.Sort("[ReceivedTime]", True)
+            if conversation.Count > 0:
+                original = conversation.Item(1)
+                reply_all = original.ReplyAll()
+                reply_all.To = to
+                reply_all.Subject = subject
+                reply_all.Body = body
+                reply_all.Send()
+                return
+
+        app = _get_outlook_application()
+        mail = app.CreateItem(0)
+        mail.To = to
+        mail.Subject = subject
+        mail.Body = body
+        mail.Send()
+
     def _get_message_by_entry_id(self, entry_id: str) -> EmailMessage | None:
         try:
             message = self._namespace.GetItemFromID(entry_id)
@@ -162,6 +187,15 @@ class OutlookComEmailProvider(EmailProvider):
         def _send():
             self._connect_with_retry()
             self._send_reply_all(conversation_id, body)
+
+        await asyncio.to_thread(_send)
+
+    async def send_new_email(
+        self, to: str, subject: str, body: str, conversation_id: str | None = None
+    ) -> None:
+        def _send():
+            self._connect_with_retry()
+            self._send_new_email(to, subject, body, conversation_id)
 
         await asyncio.to_thread(_send)
 

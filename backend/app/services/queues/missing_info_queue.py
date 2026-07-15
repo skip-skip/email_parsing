@@ -34,6 +34,7 @@ def _record_to_item(record: MissingInfoQueueRecord) -> QueueItem:
         body=draft_data["body"],
         missing_fields=draft_data["missing_fields"],
         ticket_id=uuid.UUID(draft_data["ticket_id"]),
+        conversation_id=draft_data.get("conversation_id"),
     )
     return QueueItem(
         ticket_id=record.ticket_id,
@@ -60,6 +61,7 @@ class MissingInfoQueue:
             "body": draft.body,
             "missing_fields": draft.missing_fields,
             "ticket_id": str(draft.ticket_id),
+            "conversation_id": draft.conversation_id,
         }
         async with async_session_factory() as session:
             record = MissingInfoQueueRecord(
@@ -130,26 +132,26 @@ class MissingInfoQueue:
                     "body": edits.body,
                     "missing_fields": edits.missing_fields,
                     "ticket_id": str(edits.ticket_id),
+                    "conversation_id": edits.conversation_id,
                 }
 
             record.status = "APPROVED"
 
             draft_data = record.draft_json
-            conversation_id = draft_data.get("ticket_id", "")
-            ticket_repo = TicketRepository(session)
-            ticket = await ticket_repo.get_by_id(ticket_uuid)
-            if ticket and ticket.conversation_id:
-                conversation_id = ticket.conversation_id
 
             if email_provider is not None:
                 try:
-                    await email_provider.send_reply_all(
-                        conversation_id, draft_data["body"]
+                    await email_provider.send_new_email(
+                        to=draft_data["to"],
+                        subject=draft_data["subject"],
+                        body=draft_data["body"],
+                        conversation_id=draft_data.get("conversation_id"),
                     )
                     record.status = "AWAITING_REPLY"
                     logger.info(
-                        "Sent missing info email for ticket %s via reply-all",
+                        "Sent missing info email for ticket %s to %s",
                         ticket_id,
+                        draft_data["to"],
                     )
                 except Exception:
                     record.status = "PENDING"
@@ -214,6 +216,7 @@ class MissingInfoQueue:
                 "body": new_draft.body,
                 "missing_fields": new_draft.missing_fields,
                 "ticket_id": str(new_draft.ticket_id),
+                "conversation_id": new_draft.conversation_id,
             }
             await session.commit()
             await session.refresh(record)

@@ -58,11 +58,11 @@ class TestWorkflowGraph:
         mock_parsed.sender = "bob@example.com"
         mock_parsed.subject = "Test"
         mock_parsed.project_number = None
-        mock_parsed.task_description = None
+        mock_parsed.task_description = "Help with something"
         mock_parsed.deadline = None
         mock_parsed.budget_hours = None
         mock_parsed.attachments = []
-        mock_parsed.confidence = 0.2
+        mock_parsed.confidence = 0.8
         mock_agent.parse = AsyncMock(return_value=mock_parsed)
         mock_agent_cls.return_value = mock_agent
 
@@ -80,3 +80,37 @@ class TestWorkflowGraph:
         })
 
         assert result["status"] == "WAITING_FOR_INFORMATION"
+
+    @patch("backend.app.agents.email_parsing_agent.EmailParsingAgent")
+    def test_low_confidence_extraction_follows_failed_path(
+        self, mock_agent_cls: MagicMock
+    ) -> None:
+        mock_agent = MagicMock()
+        mock_parsed = MagicMock()
+        mock_parsed.client = None
+        mock_parsed.sender = "bob@example.com"
+        mock_parsed.subject = "Test"
+        mock_parsed.project_number = None
+        mock_parsed.task_description = None
+        mock_parsed.deadline = None
+        mock_parsed.budget_hours = None
+        mock_parsed.attachments = []
+        mock_parsed.confidence = 0.2
+        mock_agent.parse = AsyncMock(return_value=mock_parsed)
+        mock_agent_cls.return_value = mock_agent
+
+        wf = compile_workflow()
+        result = wf.invoke({
+            "ticket_id": "test-ticket-3",
+            "status": "",
+            "parsed_data": None,
+            "validation_result": None,
+            "missing_fields": [],
+            "error": None,
+            "sender": "bob@example.com",
+            "subject": "Quick question",
+            "body": "Hey, can you help?",
+        })
+
+        assert result["status"] == "EXTRACTION_FAILED"
+        assert result["error"] is not None

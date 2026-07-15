@@ -124,12 +124,12 @@ class TestEmailProcessor:
 
     @patch("backend.app.services.email_processor.async_session_factory")
     @patch("backend.app.services.email_processor.EmailClassificationAgent")
-    def test_classification_failure_fails_open(
+    def test_classification_failure_fails_open_skips_ticket(
         self,
         mock_classifier_cls: MagicMock,
         mock_session_factory: MagicMock,
     ) -> None:
-        """When classification fails, should fail-open and process as task."""
+        """When classification fails with low confidence, should skip ticket creation."""
         mock_classifier = MagicMock()
         mock_classifier.classify = AsyncMock(
             return_value=ClassificationResult(
@@ -141,38 +141,16 @@ class TestEmailProcessor:
         )
         mock_classifier_cls.return_value = mock_classifier
 
-        ticket_id = uuid.uuid4()
-        mock_ticket_repo = MagicMock()
-        mock_ticket_repo.create = AsyncMock(
-            return_value=MagicMock(ticket_id=ticket_id)
-        )
-
-        mock_email_repo = MagicMock()
-        mock_email = MagicMock()
-        mock_email_repo.get_by_entry_id = AsyncMock(return_value=mock_email)
-
         mock_session = AsyncMock()
         mock_session_factory.return_value.__aenter__.return_value = mock_session
 
-        with patch(
-            "backend.app.services.email_processor.TicketRepository",
-            return_value=mock_ticket_repo,
-        ), patch(
-            "backend.app.services.email_processor.EmailRepository",
-            return_value=mock_email_repo,
-        ), patch(
-            "backend.app.services.email_processor.compile_workflow"
-        ) as mock_compile:
-            mock_wf = MagicMock()
-            mock_wf.invoke.return_value = {"status": "IN_PROGRESS"}
-            mock_compile.return_value = mock_wf
-
-            processor = EmailProcessor(classification_agent=mock_classifier)
-            message = self._make_message()
-            result = asyncio.run(processor.process_new_email(message))
+        processor = EmailProcessor(classification_agent=mock_classifier)
+        message = self._make_message()
+        result = asyncio.run(processor.process_new_email(message))
 
         assert result.is_task is True
-        assert result.ticket_id is not None
+        assert result.ticket_id is None
+        assert result.workflow_status is None
 
     @patch("backend.app.services.email_processor.async_session_factory")
     @patch("backend.app.services.email_processor.EmailClassificationAgent")
@@ -266,13 +244,134 @@ class TestEmailProcessor:
         assert result.ticket_id is not None
         assert result.error is not None
 
+    @patch("backend.app.services.email_processor.compile_workflow")
     @patch("backend.app.services.email_processor.async_session_factory")
     @patch("backend.app.services.email_processor.EmailClassificationAgent")
-    def test_returns_correct_entry_id(
+    def test_workflow_returns_waiting_for_information_creates_queue_entry(
         self,
         mock_classifier_cls: MagicMock,
         mock_session_factory: MagicMock,
+        mock_compile_workflow: MagicMock,
     ) -> None:
+        """When workflow returns WAITING_FOR_INFORMATION, queue entry is created."""
+        mock_classifier = MagicMock()
+        mock_classifier.classify = AsyncMock(
+            return_value=ClassificationResult(
+                is_task=True,
+                category="task_request",
+                confidence=0.95,
+                reason="Task request",
+            )
+        )
+        mock_classifier_cls.return_value = mock_classifier
+
+        ticket_id = uuid.uuid4()
+        mock_ticket_repo = MagicMock()
+        mock_ticket_repo.create = AsyncMock(
+            return_value=MagicMock(ticket_id=ticket_id)
+        )
+
+        mock_email_repo = MagicMock()
+        mock_email = MagicMock()
+        mock_email_repo.get_by_entry_id = AsyncMock(return_value=mock_email)
+
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__.return_value = mock_session
+
+        mock_wf = MagicMock()
+        mock_wf.invoke.return_value = {
+            "status": "WAITING_FOR_INFORMATION",
+            "missing_fields": ["project_number"],
+            "parsed_data": {"client": "Acme Corp"},
+        }
+        mock_compile_workflow.return_value = mock_wf
+
+        with patch(
+            "backend.app.services.email_processor.TicketRepository",
+            return_value=mock_ticket_repo,
+        ), patch(
+            "backend.app.services.email_processor.EmailRepository",
+            return_value=mock_email_repo,
+        ), patch(
+            "backend.app.services.email_processor.EmailDraftAgent"
+        ) as mock_draft_cls, patch(
+            "backend.app.services.email_processor.get_missing_info_queue"
+        ) as mock_get_queue:
+            mock_draft = MagicMock()
+            mock_draft.draft = AsyncMock(return_value=MagicMock())
+            mock_draft_cls.return_value = mock_draft
+
+            mock_queue = MagicMock()
+            mock_queue.add_to_queue = AsyncMock(return_value=MagicMock())
+            mock_get_queue.return_value = mock_queue
+
+            processor = EmailProcessor(classification_agent=mock_classifier)
+            message = self._make_message()
+            result = asyncio.run(processor.process_new_email(message))
+
+        assert result.workflow_status == "WAITING_FOR_INFORMATION"
+        mock_queue.add_to_queue.assert_awaited_once()
+
+    @patch("backend.app.services.email_processor.compile_workflow")
+    @patch("backend.app.services.email_processor.async_session_factory")
+    @patch("backend.app.services.email_processor.EmailClassificationAgent")
+    def test_workflow_waiting_for_information_missing_fields_empty_no_queue_entry(
+        self,
+        mock_classifier_cls: MagicMock,
+        mock_session_factory: MagicMock,
+        mock_compile_workflow: MagicMock,
+    ) -> None:
+        """When WAITING_FOR_INFORMATION but missing_fields is empty, no queue entry."""
+        mock_classifier = MagicMock()
+        mock_classifier.classify = AsyncMock(
+            return_value=ClassificationResult(
+                is_task=True,
+                category="task_request",
+                confidence=0.95,
+                reason="Task request",
+            )
+        )
+        mock_classifier_cls.return_value = mock_classifier
+
+        ticket_id = uuid.uuid4()
+        mock_ticket_repo = MagicMock()
+        mock_ticket_repo.create = AsyncMock(
+            return_value=MagicMock(ticket_id=ticket_id)
+        )
+
+        mock_email_repo = MagicMock()
+        mock_email = MagicMock()
+        mock_email_repo.get_by_entry_id = AsyncMock(return_value=mock_email)
+
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__.return_value = mock_session
+
+        mock_wf = MagicMock()
+        mock_wf.invoke.return_value = {
+            "status": "WAITING_FOR_INFORMATION",
+            "missing_fields": [],
+        }
+        mock_compile_workflow.return_value = mock_wf
+
+        with patch(
+            "backend.app.services.email_processor.TicketRepository",
+            return_value=mock_ticket_repo,
+        ), patch(
+            "backend.app.services.email_processor.EmailRepository",
+            return_value=mock_email_repo,
+        ), patch(
+            "backend.app.services.email_processor.get_missing_info_queue"
+        ) as mock_get_queue:
+            mock_queue = MagicMock()
+            mock_queue.add_to_queue = AsyncMock()
+            mock_get_queue.return_value = mock_queue
+
+            processor = EmailProcessor(classification_agent=mock_classifier)
+            message = self._make_message()
+            result = asyncio.run(processor.process_new_email(message))
+
+        assert result.workflow_status == "WAITING_FOR_INFORMATION"
+        mock_queue.add_to_queue.assert_not_awaited()
         """ProcessingResult should contain the original entry_id."""
         mock_classifier = MagicMock()
         mock_classifier.classify = AsyncMock(
@@ -384,7 +483,8 @@ class TestEmailProcessorCircuitBreaker:
         result = asyncio.run(processor.process_new_email(message))
 
         mock_classifier.classify.assert_not_awaited()
-        assert result.is_task is True
+        assert result.is_task is False
+        assert result.ticket_id is None
 
     @patch("backend.app.services.email_processor.async_session_factory")
     @patch("backend.app.services.email_processor.EmailClassificationAgent")

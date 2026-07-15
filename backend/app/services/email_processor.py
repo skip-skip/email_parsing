@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_FAILURE_THRESHOLD = 3
 DEFAULT_COOLDOWN_SECONDS = 300
+MIN_TASK_CONFIDENCE = 0.5
 
 
 class CircuitBreaker:
@@ -156,7 +157,7 @@ class EmailProcessor:
                 result.classification = self._classifier._fail_open_result(
                     message.sender, message.subject
                 )
-                result.is_task = True
+                result.is_task = False
                 return result
 
             classification = await self._classifier.classify(
@@ -178,6 +179,17 @@ class EmailProcessor:
                 )
                 return result
 
+            if classification.confidence < MIN_TASK_CONFIDENCE:
+                logger.warning(
+                    "Email %s classified as task but confidence too low "
+                    "(%.2f < %.2f), skipping: %s",
+                    message.entry_id,
+                    classification.confidence,
+                    MIN_TASK_CONFIDENCE,
+                    classification.reason,
+                )
+                return result
+
             ticket_id = await self._create_ticket(message)
             result.ticket_id = str(ticket_id)
 
@@ -190,8 +202,19 @@ class EmailProcessor:
             await self._persist_ticket_status(ticket_id, workflow_status)
 
             if workflow_status == "WAITING_FOR_INFORMATION":
-                await self._create_missing_info_entry(
+                success = await self._create_missing_info_entry(
                     ticket_id, message, final_state
+                )
+                if not success:
+                    logger.error(
+                        "WAITING_FOR_INFORMATION but failed to create queue entry for %s",
+                        ticket_id,
+                    )
+            elif workflow_status == "EXTRACTION_FAILED":
+                logger.warning(
+                    "Extraction failed for ticket %s, no follow-up email sent: %s",
+                    ticket_id,
+                    final_state.get("error", "Unknown error"),
                 )
 
             logger.info(
@@ -311,6 +334,12 @@ class EmailProcessor:
             ticket_id: The UUID of the ticket to update.
             status: The new status string from the workflow.
         """
+        if status == "EXTRACTION_FAILED":
+            logger.info(
+                "Skipping status persistence for EXTRACTION_FAILED on ticket %s",
+                ticket_id,
+            )
+            return
         try:
             target = TicketStatus(status)
             await transition_ticket(ticket_id, target, strict_mode=False)
@@ -324,7 +353,7 @@ class EmailProcessor:
         ticket_id: uuid.UUID,
         message: EmailMessage,
         workflow_state: dict[str, object],
-    ) -> None:
+    ) -> bool:
         """Create a missing info queue entry when the workflow detects missing fields.
 
         Uses the EmailDraftAgent to generate an LLM-powered draft email.
@@ -334,11 +363,19 @@ class EmailProcessor:
             ticket_id: The UUID of the ticket.
             message: The original email message.
             workflow_state: The final workflow state dict.
+
+        Returns:
+            True if the queue entry was created successfully, False otherwise.
         """
         try:
             missing_fields = workflow_state.get("missing_fields", [])
             if not missing_fields:
-                return
+                logger.warning(
+                    "No missing fields in workflow state for ticket %s, "
+                    "skipping queue entry",
+                    ticket_id,
+                )
+                return False
 
             parsed_data = workflow_state.get("parsed_data") or {}
             client = parsed_data.get("client") if isinstance(parsed_data, dict) else None
@@ -346,7 +383,8 @@ class EmailProcessor:
             task_description = parsed_data.get("task_description") if isinstance(parsed_data, dict) else None
 
             draft_agent = EmailDraftAgent()
-            draft = await draft_agent.draft(
+            draft = await asyncio.to_thread(
+                draft_agent.draft,
                 ticket_id=str(ticket_id),
                 sender=message.sender,
                 subject=message.subject or "Your request",
@@ -354,6 +392,7 @@ class EmailProcessor:
                 project_number=project_number,
                 task_description=task_description,
                 missing_fields=missing_fields,
+                conversation_id=message.conversation_id,
             )
 
             queue = get_missing_info_queue()
@@ -368,7 +407,9 @@ class EmailProcessor:
                 ticket_id,
                 missing_fields,
             )
+            return True
         except Exception:
             logger.exception(
                 "Failed to create missing info entry for ticket %s", ticket_id
             )
+            return False

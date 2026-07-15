@@ -74,7 +74,7 @@ def incomplete_parsed_data() -> dict[str, Any]:
         "deadline": None,
         "budget_hours": None,
         "attachments": [],
-        "confidence": 0.25,
+        "confidence": 0.8,
     }
 
 

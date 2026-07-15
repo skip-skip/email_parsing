@@ -66,14 +66,14 @@ DEFAULT_FIELD_RULES: list[FieldRule] = [
     ),
     FieldRule(
         name="budget_hours",
-        required=True,
+        required=False,
         custom_validator=_validate_budget_hours,
         error_message="Budget hours must be greater than 0",
     ),
     FieldRule(
         name="deadline",
-        required=True,
+        required=False,
         custom_validator=_validate_deadline,
-        error_message="Deadline is required and must be a valid date",
+        error_message="Deadline must be a valid date",
     ),
 ]

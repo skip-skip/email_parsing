@@ -200,7 +200,7 @@ class TestEmailToTicketFlow:
     @patch("backend.app.services.email_processor.TicketRepository")
     @patch("backend.app.services.email_processor.async_session_factory")
     @patch("backend.app.services.email_processor.EmailClassificationAgent")
-    def test_classification_failure_fails_open_to_task(
+    def test_classification_failure_fails_open_skips_ticket(
         self,
         mock_classifier_cls: MagicMock,
         mock_session_factory: MagicMock,
@@ -208,7 +208,7 @@ class TestEmailToTicketFlow:
         mock_email_repo_cls: MagicMock,
         mock_compile_workflow: MagicMock,
     ) -> None:
-        """When LLM classification fails, should fail-open and process as task."""
+        """When LLM classification fails with low confidence, should skip ticket creation."""
         mock_classifier = MagicMock()
         mock_classifier.classify = AsyncMock(
             return_value=ClassificationResult(
@@ -244,8 +244,8 @@ class TestEmailToTicketFlow:
         result = asyncio.run(processor.process_new_email(message))
 
         assert result.is_task is True
-        assert result.ticket_id is not None
-        assert result.workflow_status == "IN_PROGRESS"
+        assert result.ticket_id is None
+        assert result.workflow_status is None
 
     @patch("backend.app.services.email_processor.compile_workflow")
     @patch("backend.app.services.email_processor.EmailRepository")
